@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import subprocess
 import numpy.ma as ma
 import numpy as np
 import calendar
@@ -100,10 +101,11 @@ def wrftimetodate(wrfstr):
     wrfdate=datetime(Year, Month, Day, Hour, Minute, Second)
     return wrfdate
 
+MATCHINE=subprocess.check_output("uname -a" , shell=True)
 calendar_cur=args.calendar
 periods=args.p[0]
 casename=args.n
-vnames=args.v
+vnames=args.v if args.v else postList[args.p]
 
 if periods=="daily":
   units_cur = 'days since 0001-01-01 00:00'
@@ -118,150 +120,184 @@ for filename in filenames_all:
     break
   filenames.append(filename)
 
-for vname in vnames:
-  shiftday=var_parameters[vname]['shiftday'] 
-  compute_mode=var_parameters[vname]['compute_mode'] 
-  rawfname="%s_%s_%s.nc"%(casename,vname,periods)
-  ncexist=os.path.isfile(rawfname)
-  lastindex=0
-  if ncexist:
-    rawnc=Dataset(rawfname,'a')
-    lastday=num2date(rawnc.variables["time"][-1],units=units_cur,calendar=calendar_cur)
-    lastwrfout="wrfout_d01_%s"%lastday.strftime(wrfout_data_fmt)
-    try:
-      lastindex=filenames.index(lastwrfout)
-      del filenames[:lastindex]
-    except:
-      print("STOP! There is a GAP between the record of the last day %s and earlieast wrfout we have in this folder"%(lastday))
-      import sys
-      sys.exit()
-  ncfile_last=Dataset(filenames[0],'r')
-  var_shape=ncfile_last.variables[vname].shape
-  outputdim=len(var_shape)
-  if outputdim==3:
-    (nstep,nx,ny)=ncfile_last.variables[vname].shape
-  elif outputdim==4:
-    (nstep,nlev,nx,ny)=ncfile_last.variables[vname].shape
-  outputdata=np.empty([len(filenames)-shiftday,nx,ny])
-  outputtime=np.empty([len(filenames)-shiftday])
-  print(filenames)
-  simbeg_date=wrftimetodate(Dataset(filenames[shiftday],'r').variables['Times'][0])
-
-  for iday,filename in enumerate(filenames[shiftday:]):
-    ncfile_cur=Dataset(filename,'r')
-    curtime=ncfile_cur.variables['Times']
-    date_curstep=wrftimetodate(curtime[0])
-    if date_curstep==iday*Oneday+simbeg_date:
-      if len(curtime)==nstep:
-        if compute_mode==6:
-          if vname=="PRAVG":
-            outputdata[iday,:,:]=(ncfile_cur.variables['RAINC'][0,:,:]-ncfile_last.variables['RAINC'][0,:,:]
-                                 +ncfile_cur.variables['RAINNC'][0,:,:]-ncfile_last.variables['RAINNC'][0,:,:])
-          else:
-            outputdata[iday,:,:]=ncfile_cur.variables[vname][0,:,:]-ncfile_last.variables[vname][0,:,:]
-        elif compute_mode==1:
-          outputdata[iday,:,:]=np.mean(ncfile_cur.variables[vname][:,:,:],axis=0)
-        outputtime[iday]=date2num( date_curstep,units=units_cur,calendar=calendar_cur)
-        print(date_curstep)
-      else:
-        print("STOP! one wrfout is incomplete %s ",(filename))
-        import sys
-        sys.exit()
+if args.sjob:
+  nprocs=len(vnames)
+  if 'deepthought2' in MATCHINE: 
+    nodes=nprocs/20+1
+  else:
+    nodes=nprocs/32+1
+  job_t="job_temp_%s.pbs"%str(args.p[0])
+  with open('job_default.pbs', 'r') as fin:
+    with open(job_t, 'w') as fout:
+       for line in fin:
+         line=line.replace("NPROCS",str(nprocs))
+         line=line.replace("PERIOD",str(args.p[0]))
+         line=line.replace("VAR",','.join(vnames))
+         fout.write(line)
+  cmd="qsub "+job_t
+  subprocess.call(cmd,shell=True)
+else:
+  if args.mpi:
+    import imp
+    from mpi4py import MPI
+    comm = MPI.COMM_WORLD
+    nprocs = comm.Get_size()
+    rank = comm.Get_rank()
+    if nprocs>=len(vnames):
+      try:
+        var_loc =vnames[rank]
+        cmd="post.py -p "+args.p[0] +" -v "+var_loc
+        print(cmd,rank)
+        subprocess.call(cmd,shell=True)
+        print("call finished on case %s " % (cmd))
+      except:
+        import sys, traceback
+        print("ERROR in %s rank %s"%(cmd,rank))
     else:
-      print("STOP! one day is missing bettween output %s and %s",(filenames[iday],filenames[iday-1]))
-      import sys
-      sys.exit()
-    ncfile_last=ncfile_cur
+      print("we don't have enough CPU %s there are %s tasks %s cases %s vars %s years"
+                                 % (nprocs,tot_year*tot_case*tot_postvar, tot_case,tot_postvar,tot_year))
+    comm.Barrier()
+  else:
+    for vname in vnames:
+      shiftday=var_parameters[vname]['shiftday'] 
+      compute_mode=var_parameters[vname]['compute_mode'] 
+      rawfname="%s_%s_%s.nc"%(casename,vname,periods)
+      ncexist=os.path.isfile(rawfname)
+      ncfile_last=Dataset(filenames[0],'r')
+      var_shape=ncfile_last.variables[vname].shape
+      outputdim=len(var_shape)
+      if outputdim==3:
+        (nstep,nx,ny)=ncfile_last.variables[vname].shape
+      elif outputdim==4:
+        (nstep,nlev,nx,ny)=ncfile_last.variables[vname].shape
+      lastindex=0
+      if ncexist:
+        rawnc=Dataset(rawfname,'a')
+        lastday=num2date(rawnc.variables["time"][-1],units=units_cur,calendar=calendar_cur)
+        lastwrfout="wrfout_d01_%s"%lastday.strftime(wrfout_data_fmt)
+        try:
+          lastindex=filenames.index(lastwrfout)
+          del filenames[:lastindex]
+        except:
+          print("STOP! There is a GAP between the record of the last day %s and earlieast wrfout we have in this folder"%(lastday))
+          import sys
+          sys.exit()
+      else:
+        rawnc=createnc(casename,vname,periods,units_cur,calendar_cur,nx,ny,dimension=outputdim)
+        rawnc.variables[vname].units=ncfile_last.variables[vname].units
+        rawnc.variables[vname].description=ncfile_last.variables[vname].description
+      outputdata=np.empty([len(filenames)-shiftday,nx,ny])
+      outputtime=np.empty([len(filenames)-shiftday])
+      print(filenames)
+      simbeg_date=wrftimetodate(Dataset(filenames[shiftday],'r').variables['Times'][0])
+      for iday,filename in enumerate(filenames[shiftday:]):
+        ncfile_cur=Dataset(filename,'r')
+        curtime=ncfile_cur.variables['Times']
+        date_curstep=wrftimetodate(curtime[0])
+        if date_curstep==iday*Oneday+simbeg_date:
+          if len(curtime)==nstep:
+            if compute_mode==6:
+              if vname=="PRAVG":
+                outputdata[iday,:,:]=(ncfile_cur.variables['RAINC'][0,:,:]-ncfile_last.variables['RAINC'][0,:,:]
+                                     +ncfile_cur.variables['RAINNC'][0,:,:]-ncfile_last.variables['RAINNC'][0,:,:])
+              else:
+                outputdata[iday,:,:]=ncfile_cur.variables[vname][0,:,:]-ncfile_last.variables[vname][0,:,:]
+            elif compute_mode==1:
+              outputdata[iday,:,:]=np.mean(ncfile_cur.variables[vname][:,:,:],axis=0)
+            outputtime[iday]=date2num( date_curstep,units=units_cur,calendar=calendar_cur)
+            print(date_curstep)
+            print(outputtime[iday])
+          else:
+            print("STOP! one wrfout is incomplete %s ",(filename))
+            import sys
+            sys.exit()
+        else:
+          print("STOP! one day is missing bettween output %s and %s",(filenames[iday],filenames[iday-1]))
+          import sys
+          sys.exit()
+        ncfile_last=ncfile_cur
 
-  if not ncexist:
-    rawnc=createnc(casename,vname,periods,units_cur,calendar_cur,nx,ny,dimension=outputdim)
-    rawnc.variables[vname].units=ncfile_last.variables[vname].units
-    rawnc.variables[vname].description=ncfile_last.variables[vname].description
+      if outputdim==3:
+        rawnc.variables[vname][lastindex:,:,:]=outputdata
 
-  if outputdim==3:
-    rawnc.variables[vname][lastindex:,:,:]=outputdata
-
-  rawnc.variables["time"][lastindex:]=outputtime
-#clat0[:]=ncfile_last.variables['XLAT']
-#clon0[:]=ncfile_last.variables['XLON']
-
+      rawnc.variables["time"][lastindex:]=outputtime
 
 ########################DIAG PART#################################
-  if periods=="daily":
-    if vname=="PRAVG":
-      postlist=["PCT","PRAVG","RAINYDAYS","R10","R5D","CDD","R95T","SDII"]
-    else:
-      postlist=[vname]
+      if periods=="daily":
+        if vname=="PRAVG":
+          postlist=["PCT","PRAVG","RAINYDAYS","R10","R5D","CDD","R95T","SDII"]
+        else:
+          postlist=[vname]
+        nctime=rawnc.variables["time"]
+        start_ymd=num2date(nctime[0],units=units_cur,calendar=calendar_cur)
+        end_ymd  =num2date(nctime[-1],units=units_cur,calendar=calendar_cur)
+        dodiag=False
+        diagnc={}
 
-    nctime=rawnc.variables["time"]
-    start_ymd=num2date(nctime[0],units=units_cur,calendar=calendar_cur)
-    end_ymd  =num2date(nctime[-1],units=units_cur,calendar=calendar_cur)
-    dodiag=False
-    diagnc={}
-    if datetime(start_ymd.year,12,1)+shiftday*Oneday>=start_ymd and datetime(end_ymd.year,11,1)<=end_ymd and start_ymd.year<end_ymd.year: 
-      diagfname="%s_%s_seasonal.nc"%(casename,vname)
-      diagexist=os.path.isfile(diagfname) 
-      if diagexist:
-        for postvar in postlist:
-          diagfname="%s_%s_seasonal.nc"%(casename,postvar)
-          diagnc[postvar]=Dataset(diagfname,'a')
-        nctime_diag=diagnc[vname].variables["time"]
-        lastindex=len(nctime_diag)
-        if nctime_diag[-1]<end_ymd.year:
-          print("do seasonal mean diagnostic analysis")
-          dodiag=True
-          diag_startyear=nctime_diag[-1]+1
-          diag_endyear=end_ymd.year
-      else:
-        lastindex=0
-        dodiag=True
-        diag_startyear=start_ymd.year+1
-        diag_endyear=end_ymd.year
-        for postvar in postlist:
-          diagnc[postvar]=createseasonalnc(casename,postvar,units_cur,nx,ny)
-
-    if dodiag:
-      Years=range(diag_startyear,diag_endyear+1)
-      for postvar in postlist:
-        diagnc[postvar].variables['time'][lastindex:]=Years
-      print(Years)
-      for i,year in  enumerate(Years):
-        i_cur=i+lastindex
-        for j,month in enumerate(seasonList):
-          if 12 in month:
-            byear=year-1
+        if datetime(start_ymd.year,12,1)+shiftday*Oneday>=start_ymd and datetime(end_ymd.year,11,1)<=end_ymd and start_ymd.year<end_ymd.year: 
+          diagfname="%s_%s_seasonal.nc"%(casename,vname)
+          diagexist=os.path.isfile(diagfname) 
+          if diagexist:
+            for postvar in postlist:
+              diagfname="%s_%s_seasonal.nc"%(casename,postvar)
+              diagnc[postvar]=Dataset(diagfname,'a')
+            nctime_diag=diagnc[vname].variables["time"]
+            lastindex=len(nctime_diag)
+            if nctime_diag[-1]<end_ymd.year:
+              print("do seasonal mean diagnostic analysis")
+              dodiag=True
+              diag_startyear=nctime_diag[-1]+1
+              diag_endyear=end_ymd.year
           else:
-            byear=year
-          eyear=year
-          bmonth=month[0]
-          emonth=month[2]
-          bday=1
-          if calendar_cur=="noleap":
-            eday=calendar.monthrange(1999, emonth)[1]
-          else:
-            eday=calendar.monthrange(eyear, emonth)[1]
-          ymd_datetime=datetime(int(byear),int(bmonth),1,0,0,0)
-          dayb=date2num(ymd_datetime,units=units_cur,calendar=calendar_cur)
-          print(ymd_datetime)
-          ymd_datetime=datetime(int(eyear),int(emonth),int(eday),0,0,0)
-          print(ymd_datetime)
-          daye=date2num(ymd_datetime,units=units_cur,calendar=calendar_cur)
-          dayb=dayb-rawnc.variables["time"][0]+shiftday
-          daye=daye-rawnc.variables["time"][0]+shiftday
-          data_daily_ma=ma.masked_values(rawnc.variables[vname][int(dayb):int(daye),:,:],1.e+20)
-          if vname=="PRAVG":
-            (diagnc["RAINYDAYS"].variables["RAINYDAYS"][i_cur,j,:,:],
-             diagnc["R10"].variables["R10"][i_cur,j,:,:],
-             diagnc["R5D"].variables["R5D"][i_cur,j,:,:],
-             diagnc["SDII"].variables["SDII"][i_cur,j,:,:],
-             diagnc["R95T"].variables["R95T"][i_cur,j,:,:])=cs_stat.precp_extrem(fields=data_daily_ma,r95t_hist=default.r95t_hist.variables["R95T_hist"][j],dry_lim=dry_lim)
-            diagnc["PCT"].variables["PCT"][i_cur,j,:,:]=cs_stat.quantile_cal(data_daily_ma,dry_lim,pct)
-            diagnc["CDD"].variables["CDD"][i_cur,j,:,:]=cs_stat.consective_dry(fields=data_daily_ma,dry_lim=dry_lim)
-          diagnc[vname].variables[vname].units=ncfile_last.variables[vname].units
-          diagnc[vname].variables[vname].description=ncfile_last.variables[vname].description
-          diagnc[vname].variables[vname][i_cur,j,:,:]=np.mean(data_daily_ma,axis=0)
-          print("year %s season %s"% (str(year),str(j)))
-      for postvar in postlist:
-        diagnc[postvar].close()
+            lastindex=0
+            dodiag=True
+            diag_startyear=start_ymd.year+1
+            diag_endyear=end_ymd.year
+            for postvar in postlist:
+              diagnc[postvar]=createseasonalnc(casename,postvar,units_cur,nx,ny)
 
-  rawnc.close() #flush out rawnc
+        if dodiag:
+          Years=range(diag_startyear,diag_endyear+1)
+          for postvar in postlist:
+            diagnc[postvar].variables['time'][lastindex:]=Years
+          print(Years)
+          for i,year in  enumerate(Years):
+            i_cur=i+lastindex
+            for j,month in enumerate(seasonList):
+              if 12 in month:
+                byear=year-1
+              else:
+                byear=year
+              eyear=year
+              bmonth=month[0]
+              emonth=month[2]
+              bday=1
+              if calendar_cur=="noleap":
+                eday=calendar.monthrange(1999, emonth)[1]
+              else:
+                eday=calendar.monthrange(eyear, emonth)[1]
+              ymd_datetime=datetime(int(byear),int(bmonth),1,0,0,0)
+              dayb=date2num(ymd_datetime,units=units_cur,calendar=calendar_cur)
+              print(ymd_datetime)
+              ymd_datetime=datetime(int(eyear),int(emonth),int(eday),0,0,0)
+              print(ymd_datetime)
+              daye=date2num(ymd_datetime,units=units_cur,calendar=calendar_cur)
+              dayb=dayb-rawnc.variables["time"][0]+shiftday
+              daye=daye-rawnc.variables["time"][0]+shiftday
+              data_daily_ma=ma.masked_values(rawnc.variables[vname][int(dayb):int(daye),:,:],1.e+20)
+              if vname=="PRAVG":
+                (diagnc["RAINYDAYS"].variables["RAINYDAYS"][i_cur,j,:,:],
+                 diagnc["R10"].variables["R10"][i_cur,j,:,:],
+                 diagnc["R5D"].variables["R5D"][i_cur,j,:,:],
+                 diagnc["SDII"].variables["SDII"][i_cur,j,:,:],
+                 diagnc["R95T"].variables["R95T"][i_cur,j,:,:])=cs_stat.precp_extrem(fields=data_daily_ma,r95t_hist=default.r95t_hist.variables["R95T_hist"][j],dry_lim=dry_lim)
+                diagnc["PCT"].variables["PCT"][i_cur,j,:,:]=cs_stat.quantile_cal(data_daily_ma,dry_lim,pct)
+                diagnc["CDD"].variables["CDD"][i_cur,j,:,:]=cs_stat.consective_dry(fields=data_daily_ma,dry_lim=dry_lim)
+              diagnc[vname].variables[vname].units=ncfile_last.variables[vname].units
+              diagnc[vname].variables[vname].description=ncfile_last.variables[vname].description
+              diagnc[vname].variables[vname][i_cur,j,:,:]=np.mean(data_daily_ma,axis=0)
+              print("year %s season %s"% (str(year),str(j)))
+          for postvar in postlist:
+            diagnc[postvar].close()
+
+      rawnc.close() #flush out rawnc
