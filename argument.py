@@ -2,7 +2,7 @@
 from os import getcwd
 import argparse
 parser = argparse.ArgumentParser(description='Post pocess the varialbe you choose ')
-parser.add_argument("-p",help="run type",default='daily',choices=['daily','monthly','seasonal','hourly'])
+parser.add_argument("-p",help="run type",default='daily',choices=['daily','hourly'])
 parser.add_argument("--calendar",help="the type of calendar which is gonna be used",default='gregorian',
                     choices=['gregorian','noleap'])
 parser.add_argument("-i",help="wrfinput location")
