@@ -1,6 +1,6 @@
 var_parameters = {
 	"QFX"		: { "compute_mode":1, "shiftday":-1 },
-	"LH"		: { "compute_mode":1, "shiftday":-1 },
+	"LH"		: { "compute_mode":1, "shiftday":0  },
 	"ATH2"		: { "compute_mode":1, "shiftday":-1 },
 	"WSAVG"  	: { "compute_mode":1, "shiftday":0 },
 	"WSAVG"  	: { "compute_mode":1, "shiftday":0 },
@@ -44,6 +44,7 @@ var_parameters = {
 	"CAPE2"		: { "compute_mode":1, "shiftday":0 },
 	"CAPE3"		: { "compute_mode":1, "shiftday":0 },
 	"AT2M"		: { "compute_mode":1, "shiftday":0 },
+	"T2M"		: { "compute_mode":1, "shiftday":0 },
 	"SST"		: { "compute_mode":1, "shiftday":0 },
 	"XTSS"		: { "compute_mode":1, "shiftday":0 },
 	"T2"		: { "compute_mode":1, "shiftday":0 },
@@ -195,6 +196,7 @@ daily_allvars    = (        'W'         , 'PRMAX'   ,   'RAINC'  ,'RAINNC'  ,
                             'CLDFRApbl' , 'CLDCNVg' , 'CLDSCUg'  , 
                             'TCWPC'     , 'TCWPI'   , 'TCWPR'    , 
                             'TSLB'      , 'SMOIS'   , 'XQRCHRG'  , 
+                            'XTSS'      ,'XSMTg'    ,'SNOW'      ,'SNOWH'   ,'UDROFF'   ,'XZWT'   ,'QFX',
                             'UQg'       , 'VQg'     , 'XOUTFLOW' , 'XRBAS'  , 'XRDRN'   , 'XRSAT' , 
                             'UDROFF'
 				 	)
