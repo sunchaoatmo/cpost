@@ -3,7 +3,7 @@ import subprocess
 import numpy as np
 from writenc import createnc
 from netCDF4 import Dataset
-from toolkit import diag_aveg, wrftimetodate
+from process import anal_daily,anal_sea_mon, wrftimetodate
 from netCDF4 import date2num,num2date
 from datetime import datetime,timedelta
 from constant import *   # only several constants
@@ -111,10 +111,16 @@ else:
         rawnc.variables[vname].description=var_description
       if len(filenames)>shiftday:
         if periods=="daily":
-          outputdata=np.empty([len(filenames)-shiftday,nx,ny])
+          if outputdim==3:
+            outputdata=np.empty([len(filenames)-shiftday,nx,ny])
+          elif outputdim==4:
+            outputdata=np.empty([len(filenames)-shiftday,nlev,nx,ny])
           outputtime=np.empty([len(filenames)-shiftday])
         else:
-          outputdata=np.empty([nstep*len(filenames)-shiftday,nx,ny])
+          if outputdim==3:
+            outputdata=np.empty([nstep*len(filenames)-shiftday,nlev,nx,ny])
+          elif outputdim==4:
+            outputdata=np.empty([nstep*len(filenames)-shiftday,nlev,nx,ny])
           outputtime=np.empty([nstep*len(filenames)-shiftday])
         simbeg_date=wrftimetodate(Dataset(filenames[shiftday],'r').variables['Times'][0])
         for iday,filename in enumerate(filenames[shiftday:]):
@@ -131,7 +137,11 @@ else:
                   else:
                     outputdata[iday,:,:]=ncfile_cur.variables[vname][0,:,:]-ncfile_last.variables[vname][0,:,:]
                 elif compute_mode==1:
-                  outputdata[iday,:,:]=np.mean(ncfile_cur.variables[vname][:,:,:],axis=0)
+                  outputdata[iday,:,:]=anal_daily(ncfile_cur,vname,var_parameters[vname]['vert_intp'],var_parameters[vname]['rotate'])
+#                  if outputdim==3:
+#                    outputdata[iday,:,:]=np.mean(ncfile_cur.variables[vname][:,:,:],axis=0)
+#                  elif outputdim==4:
+#                    outputdata[iday,:,:,:]=np.mean(ncfile_cur.variables[vname][:,:,:],axis=0)
                 outputtime[iday]=date2num( date_curstep,units=units_cur,calendar=calendar_cur)
               else:
                 outputdata[iday*nstep:(iday+1)*nstep,:,:]=ncfile_cur.variables[vname][:,:,:]
@@ -151,6 +161,8 @@ else:
 
         if outputdim==3:
           rawnc.variables[vname][lastindex:,:,:]=outputdata
+        elif outputdim==4:
+          rawnc.variables[vname][lastindex:,:,:,:]=outputdata
 
         rawnc.variables["time"][lastindex:]=outputtime
 
@@ -163,8 +175,8 @@ else:
         nctime=rawnc.variables["time"]
         start_ymd=num2date(nctime[0],units=units_cur,calendar=calendar_cur)
         end_ymd  =num2date(nctime[-1],units=units_cur,calendar=calendar_cur)
-        diag_aveg("seasonal",rawnc,seasonList,start_ymd,end_ymd,postlist,
+        anal_sea_mon("seasonal",rawnc,seasonList,start_ymd,end_ymd,postlist,
                           vname,casename,shiftday,calendar_cur,units_cur,var_units,var_description,nx,ny)
-        diag_aveg("monthly",rawnc,monthlyList,start_ymd,end_ymd,postlist,
+        anal_sea_mon("monthly",rawnc,monthlyList,start_ymd,end_ymd,postlist,
                           vname,casename,shiftday,calendar_cur,units_cur,var_units,var_description,nx,ny)
       rawnc.close() #flush out rawnc
