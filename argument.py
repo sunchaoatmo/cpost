@@ -7,7 +7,6 @@ parser.add_argument("--calendar",help="the type of calendar which is gonna be us
                     choices=['gregorian','noleap'])
 parser.add_argument("-i",help="wrfinput location")
 parser.add_argument("-v",help="post pocess varialble")
-parser.add_argument("-b2n",help="whether convert binary to NetCDF, if true, not post pocess" ,action="store_true" )
 parser.add_argument("-exe",help="location to the post.exe")
 parser.add_argument("-n",default=getcwd().split("/")[-1],help="name of the case")
 parser.add_argument("-mpi", help="MPI flag, determine whether run the script in MPI mode", action="store_true")
