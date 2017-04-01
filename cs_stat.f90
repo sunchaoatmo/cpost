@@ -1027,7 +1027,7 @@ end subroutine
    INTEGER, intent(in)::ntimes,nx,ny
    REAL, intent(in)   ::dry_lim
    REAL,DIMENSION(ntimes,nx,ny),intent(in)::fields 
-   REAL,DIMENSION(nx,ny),intent(in )::R95T_hist
+   REAL,DIMENSION(nx,ny),intent(in ),optional::R95T_hist
    REAL,DIMENSION(nx,ny),intent(out)::RD
    REAL,DIMENSION(nx,ny),intent(out)::R10 !No. of days with precipitation larger 10 mm/day
    REAL,DIMENSION(nx,ny),intent(out)::R5D !Maximum 5 d precipitation total
@@ -1068,14 +1068,18 @@ end subroutine
        r10(i,j)=rd_10
 
        DO k=1,ntimes
-         IF(fields(k,i,j)>R95T_hist(i,j).and.fields(k,i,j)>dry_lim) THEN
-!          print*,fields(k,i,j),R95T_hist(i,j)
-           R95T(i,j)=R95T(i,j)+fields(k,i,j)
+         IF (present(R95T_hist)) THEN
+           IF(fields(k,i,j)>R95T_hist(i,j).and.fields(k,i,j)>dry_lim) THEN
+  !          print*,fields(k,i,j),R95T_hist(i,j)
+             R95T(i,j)=R95T(i,j)+fields(k,i,j)
+           ENDIF
          ENDIF
        END DO
 
        IF(rd_pt>0) THEN
-         R95T(i,j)=R95T(i,j)/SDII(i,j)  ! convert to the percentage in whole year
+         IF (present(R95T_hist)) THEN
+           R95T(i,j)=R95T(i,j)/SDII(i,j)  ! convert to the percentage in whole year
+         ENDIF
          SDII(i,j)=SDII(i,j)/rd(i,j)  ! calculate the average over precipiation day
        ENDIF
        r5d(i,j)= r5d(i,j)/5.0

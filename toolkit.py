@@ -1,4 +1,4 @@
-def diag_season_month(periods,rawnc,monthList,start_ymd,end_ymd,postlist,vname,casename,shiftday,calendar_cur,time_units,units,description,nx,ny):
+def diag_aveg(periods,rawnc,monthList,start_ymd,end_ymd,postlist,vname,casename,shiftday,calendar_cur,time_units,units,description,nx,ny):
   from default import r95t_hist
   import numpy.ma as ma
   import numpy as np
@@ -65,11 +65,15 @@ def diag_season_month(periods,rawnc,monthList,start_ymd,end_ymd,postlist,vname,c
         daye=daye-rawnc.variables["time"][0]+shiftday
         data_daily_ma=ma.masked_values(rawnc.variables[vname][int(dayb):int(daye),:,:],1.e+20)
         if vname=="PRAVG":
+          if periods=="seasonal":
+            R95T_HIST=r95t_hist.variables["R95T_hist"][j]
+          else:
+            R95T_HIST=None
           (diagnc["RAINYDAYS"].variables["RAINYDAYS"][i_cur,j,:,:],
            diagnc["R10"].variables["R10"][i_cur,j,:,:],
            diagnc["R5D"].variables["R5D"][i_cur,j,:,:],
            diagnc["SDII"].variables["SDII"][i_cur,j,:,:],
-           diagnc["R95T"].variables["R95T"][i_cur,j,:,:])=cs_stat.precp_extrem(fields=data_daily_ma,r95t_hist=r95t_hist.variables["R95T_hist"][j],dry_lim=dry_lim)
+           diagnc["R95T"].variables["R95T"][i_cur,j,:,:])=cs_stat.precp_extrem(fields=data_daily_ma,r95t_hist=R95T_HIST,dry_lim=dry_lim)
           diagnc["PCT"].variables["PCT"][i_cur,j,:,:]=cs_stat.quantile_cal(data_daily_ma,dry_lim,pct)
           diagnc["CDD"].variables["CDD"][i_cur,j,:,:]=cs_stat.consective_dry(fields=data_daily_ma,dry_lim=dry_lim)
         diagnc[vname].variables[vname].units=units
