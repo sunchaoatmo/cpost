@@ -3,7 +3,7 @@ import subprocess
 import numpy as np
 from writenc import createnc
 from netCDF4 import Dataset
-from toolkit import diag_season_month, wrftimetodate
+from toolkit import diag_aveg, wrftimetodate
 from netCDF4 import date2num,num2date
 from datetime import datetime,timedelta
 from constant import *   # only several constants
@@ -92,6 +92,8 @@ else:
       elif outputdim==4:
         (nstep,nlev,nx,ny)=ncfile_last.variables[vname].shape
       lastindex=0
+
+
       if ncexist:
         rawnc=Dataset(rawfname,'a')
         lastday=num2date(rawnc.variables["time"][-1],units=units_cur,calendar=calendar_cur)
@@ -99,6 +101,7 @@ else:
         try:
           lastindex=filenames.index(lastwrfout)
           del filenames[:lastindex]
+          ncfile_last=Dataset(filenames[0],'r')
         except:
           import sys
           sys.exit("STOP! There is a GAP between the record of the last day %s and earlieast wrfout we have in this folder"%(lastday))
@@ -160,8 +163,8 @@ else:
         nctime=rawnc.variables["time"]
         start_ymd=num2date(nctime[0],units=units_cur,calendar=calendar_cur)
         end_ymd  =num2date(nctime[-1],units=units_cur,calendar=calendar_cur)
-        diag_season_month("seasonal",rawnc,seasonList,start_ymd,end_ymd,postlist,
+        diag_aveg("seasonal",rawnc,seasonList,start_ymd,end_ymd,postlist,
                           vname,casename,shiftday,calendar_cur,units_cur,var_units,var_description,nx,ny)
-        diag_season_month("monthly",rawnc,monthlyList,start_ymd,end_ymd,postlist,
+        diag_aveg("monthly",rawnc,monthlyList,start_ymd,end_ymd,postlist,
                           vname,casename,shiftday,calendar_cur,units_cur,var_units,var_description,nx,ny)
       rawnc.close() #flush out rawnc
