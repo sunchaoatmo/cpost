@@ -1,6 +1,6 @@
 from netCDF4 import Dataset
 def createsmnc(casename,vname,periods,nx,ny,dimension=3):
-  filename            = "%s_%s_monthly.nc"%(casename,vname)
+  filename            = "%s_%s_%s.nc"%(casename,vname,periods)
   rootgrp             = Dataset(filename                   , "w")
   rootgrp.createDimension("lat"      , nx )
   rootgrp.createDimension("lon"      , ny )
