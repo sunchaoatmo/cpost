@@ -7,16 +7,19 @@ INCLUDES =
 
 F2PY_FLAGS= -I./ 
 
-SRCS = cs_stat.f90
+SRCS = cs_stat.f90 ARWpost.f90
 
 F2PY = f2py
-OBJS = $(SRCS:.F90=.o)
-MODULE =cs_stat
-all:    ${MODULE}.so
+OBJS = $(SRCS:.f90=.so)
+all:    $(OBJS)
 	@echo  ${MODULE}.so has been compiled
 
-${MODULE}.so: ${MODULE}.f90 
-	$(F2PY) $(F2PY_FLAGS) --f90flags=-fPIC  -m ${MODULE} -c $< #$(OBJS) #${MODULE}.F90 
+%.so: %.f90 
+	$(F2PY) $(F2PY_FLAGS) --f90flags=-fPIC  -m $* -c $< 
+
+
+
+#$(OBJS) #${MODULE}.F90 
 
 
 # this is a suffix replacement rule for building .o's from .c's
@@ -27,7 +30,7 @@ ${MODULE}.so: ${MODULE}.f90
 #	$(FC) $(FFLAGS) $(INCLUDES) -c $<  -o $@
 
 clean:
-	$(RM) *.a *.pyc *.o *.mod  $(MODULE).so
+	$(RM) *.a *.o *.mod  *.so
 
 #depend: $(SRCS)
 #	makedepend $(INCLUDES) $^
