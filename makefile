@@ -1,7 +1,4 @@
-CC=gcc
-FC=gfortran
 AR=ar
-FFLAGS=-fPIC -Ofast
 ARFLAGS         =      ru
 INCLUDES = 
 
@@ -15,7 +12,7 @@ all:    $(OBJS)
 	@echo  ${MODULE}.so has been compiled
 
 %.so: %.f90 
-	$(F2PY) $(F2PY_FLAGS) --f90flags=-fPIC  -m $* -c $< 
+	$(F2PY) $(F2PY_FLAGS) --f90flags=-fPIC  --fcompiler=gnu95 --f90flags="-O3" -m $* -c $< 
 
 
 
