@@ -20,26 +20,19 @@ MATCHINE=subprocess.check_output("uname -a" , shell=True)
 calendar_cur=args.calendar
 periods=args.p[0]
 casename=args.n
-vnames=args.v if args.v else postList[args.p]
+tasknames=args.v if args.v else postList[args.p]
+z_levs=args.z_levs
+number_of_zlevs=len(z_levs)
 
 if periods=="daily":
   units_cur = 'days since 0001-01-01 00:00'
 elif periods=="hourly":
   units_cur = 'hours since 0001-01-01 00:00'
 Oneday=timedelta(days=1)
-filenames_all=sorted(glob.glob(prefix))
-"""
-filesize0=os.path.getsize(filenames_all[0])
-filenames=[]
-for filename in filenames_all:
-  if not filesize0==os.path.getsize(filename):
-    break
-  filenames.append(filename)
-"""
-filenames=filenames_all
+filenames=sorted(glob.glob(prefix))
 
 if args.sjob:
-  nprocs=len(vnames)
+  nprocs=len(tasknames)
   if 'deepthought2' in MATCHINE: 
     nodes=nprocs/20+1
   else:
@@ -50,7 +43,7 @@ if args.sjob:
        for line in fin:
          line=line.replace("NPROCS",str(nprocs))
          line=line.replace("PERIOD",str(args.p[0]))
-         line=line.replace("VAR",','.join(vnames))
+         line=line.replace("VAR",','.join(tasknames))
          fout.write(line)
   cmd="qsub "+job_t
   subprocess.call(cmd,shell=True)
@@ -61,9 +54,9 @@ else:
     comm = MPI.COMM_WORLD
     nprocs = comm.Get_size()
     rank = comm.Get_rank()
-    if nprocs>=len(vnames):
+    if nprocs>=len(tasknames):
       try:
-        var_loc =vnames[rank]
+        var_loc =tasknames[rank]
         cmd="post.py -p "+args.p[0] +" -v "+var_loc
         print(cmd,rank)
         subprocess.call(cmd,shell=True)
@@ -77,20 +70,30 @@ else:
                                  % (nprocs,tot_year*tot_case*tot_postvar, tot_case,tot_postvar,tot_year))
     comm.Barrier()
   else:
-    for vname in vnames:
-      shiftday=var_parameters[vname]['shiftday'] if periods=="daily"  else 0
-      compute_mode=var_parameters[vname]['compute_mode'] 
-      rawfname="%s_%s_%s.nc"%(casename,vname,periods)
+    for taskname in tasknames:
+      shiftday=var_parameters[taskname]['shiftday'] if periods=="daily"  else 0
+      compute_mode=var_parameters[taskname]['compute_mode'] 
+      rawfname="%s_%s_%s.nc"%(casename,taskname,periods)
       ncexist=os.path.isfile(rawfname)
       ncfile_last=Dataset(filenames[0],'r')
-      var_units  =ncfile_last.variables[vname].units
-      var_description  =ncfile_last.variables[vname].description
-      var_shape=ncfile_last.variables[vname].shape
-      outputdim=len(var_shape)
+      var_units,var_description={},{}
+      if taskname in ncfile_last.variables:
+        var_units[taskname]  =ncfile_last.variables[taskname].units
+        var_description[taskname]  =ncfile_last.variables[taskname].description
+        outputdim=len(ncfile_last.variables[taskname].shape)
+      else:
+        outputdim=var_parameters[taskname]['dim']
+        for field in var_parameters[taskname]["fields"]:
+          var_units[field]=var_parameters[taskname]["fields"][field]['units']
+          var_description[field]=var_parameters[taskname]["fields"][field]['description']
+      nstep=ncfile_last.dimensions['Time'].size
+      ny=ncfile_last.dimensions['south_north'].size
+      nx=ncfile_last.dimensions['west_east'].size
+      nz=ncfile_last.dimensions['bottom_top'].size
       if outputdim==3:
-        (nstep,nx,ny)=ncfile_last.variables[vname].shape
+        nlev=1
       elif outputdim==4:
-        (nstep,nlev,nx,ny)=ncfile_last.variables[vname].shape
+        nlev =  number_of_zlevs if var_parameters[taskname]['vert_intp'] else nz 
       lastindex=0
 
 
@@ -106,22 +109,16 @@ else:
           import sys
           sys.exit("STOP! There is a GAP between the record of the last day %s and earlieast wrfout we have in this folder"%(lastday))
       else:
-        rawnc=createnc(casename,vname,periods,units_cur,calendar_cur,nx,ny,dimension=outputdim)
-        rawnc.variables[vname].units=var_units
-        rawnc.variables[vname].description=var_description
+        rawnc=createnc(casename,taskname,periods,units_cur,calendar_cur,var_parameters[taskname]["fields"].keys(),nx,ny,nlev  )
+        for field in var_parameters[taskname]["fields"]:
+          rawnc.variables[field].units=var_units[field]
+          rawnc.variables[field].description=var_description[field]
       if len(filenames)>shiftday:
-        if periods=="daily":
-          if outputdim==3:
-            outputdata=np.empty([len(filenames)-shiftday,nx,ny])
-          elif outputdim==4:
-            outputdata=np.empty([len(filenames)-shiftday,nlev,nx,ny])
-          outputtime=np.empty([len(filenames)-shiftday])
-        else:
-          if outputdim==3:
-            outputdata=np.empty([nstep*len(filenames)-shiftday,nlev,nx,ny])
-          elif outputdim==4:
-            outputdata=np.empty([nstep*len(filenames)-shiftday,nlev,nx,ny])
-          outputtime=np.empty([nstep*len(filenames)-shiftday])
+        nt=len(filenames)-shiftday if periods=="daily" else nstep*len(filenames)-shiftday
+        outputtime=np.empty([nt])
+        outputdata={}
+        for field in var_parameters[taskname]["fields"]:
+          outputdata[field]=np.empty([nt,nlev,ny,nx])
         simbeg_date=wrftimetodate(Dataset(filenames[shiftday],'r').variables['Times'][0])
         for iday,filename in enumerate(filenames[shiftday:]):
           ncfile_cur=Dataset(filename,'r')
@@ -131,20 +128,21 @@ else:
             if len(curtime)==nstep:
               if periods=="daily":
                 if compute_mode==6:
-                  if vname=="PRAVG":
-                    outputdata[iday,:,:]=(ncfile_cur.variables['RAINC'][0,:,:]-ncfile_last.variables['RAINC'][0,:,:]
-                                         +ncfile_cur.variables['RAINNC'][0,:,:]-ncfile_last.variables['RAINNC'][0,:,:])
+                  if taskname=="PRAVG":
+                    for field in var_parameters[taskname]["fields"]:
+                      outputdata[field][iday,:,:]=(ncfile_cur.variables['RAINC'][0,:,:]-ncfile_last.variables['RAINC'][0,:,:]
+                                           +ncfile_cur.variables['RAINNC'][0,:,:]-ncfile_last.variables['RAINNC'][0,:,:])
                   else:
-                    outputdata[iday,:,:]=ncfile_cur.variables[vname][0,:,:]-ncfile_last.variables[vname][0,:,:]
+                    for field in var_parameters[taskname]["fields"]:
+                      outputdata[field][iday,:,:]=ncfile_cur.variables[taskname][0,:,:]-ncfile_last.variables[taskname][0,:,:]
                 elif compute_mode==1:
-                  outputdata[iday,:,:]=anal_daily(ncfile_cur,vname,var_parameters[vname]['vert_intp'],var_parameters[vname]['rotate'])
-#                  if outputdim==3:
-#                    outputdata[iday,:,:]=np.mean(ncfile_cur.variables[vname][:,:,:],axis=0)
-#                  elif outputdim==4:
-#                    outputdata[iday,:,:,:]=np.mean(ncfile_cur.variables[vname][:,:,:],axis=0)
+                  from default import wrfinput
+                  anal_daily(iday,outputdata,ncfile_cur,wrfinput,taskname,
+                            var_parameters[taskname]["fields"],var_parameters[taskname]["vert_intp"],outputdim,z_levs,number_of_zlevs)
                 outputtime[iday]=date2num( date_curstep,units=units_cur,calendar=calendar_cur)
               else:
-                outputdata[iday*nstep:(iday+1)*nstep,:,:]=ncfile_cur.variables[vname][:,:,:]
+                for field in var_parameters[taskname]["fields"]:
+                  outputdata[field][iday*nstep:(iday+1)*nstep,:,:]=ncfile_cur.variables[taskname][:,:,:]
                 for istep in range(nstep):
                   outputtime[iday*nstep+istep]=date2num( wrftimetodate(curtime[istep]),units=units_cur,calendar=calendar_cur)
               print(date_curstep)
@@ -155,28 +153,26 @@ else:
                 import sys
                 sys.exit("STOP! one wrfout is incomplete %s ",(filename))
           else:
+            print(date_curstep)
             import sys
             sys.exit("STOP! one day is missing bettween output %s and %s",(filenames[iday],filenames[iday-1]))
           ncfile_last=ncfile_cur
 
-        if outputdim==3:
-          rawnc.variables[vname][lastindex:,:,:]=outputdata
-        elif outputdim==4:
-          rawnc.variables[vname][lastindex:,:,:,:]=outputdata
+        for field in var_parameters[taskname]["fields"]:
+          if outputdim==3:
+            rawnc.variables[field][lastindex:,:,:]=outputdata[field]
+          elif outputdim==4:
+            rawnc.variables[field][lastindex:,:,:,:]=outputdata[field]
 
         rawnc.variables["time"][lastindex:]=outputtime
 
 ########################DIAG PART#################################
       if periods=="daily":
-        if vname=="PRAVG":
-          postlist=["PCT","PRAVG","RAINYDAYS","R10","R5D","CDD","R95T","SDII"]
-        else:
-          postlist=[vname]
         nctime=rawnc.variables["time"]
         start_ymd=num2date(nctime[0],units=units_cur,calendar=calendar_cur)
         end_ymd  =num2date(nctime[-1],units=units_cur,calendar=calendar_cur)
-        anal_sea_mon("seasonal",rawnc,seasonList,start_ymd,end_ymd,postlist,
-                          vname,casename,shiftday,calendar_cur,units_cur,var_units,var_description,nx,ny)
-        anal_sea_mon("monthly",rawnc,monthlyList,start_ymd,end_ymd,postlist,
-                          vname,casename,shiftday,calendar_cur,units_cur,var_units,var_description,nx,ny)
+        anal_sea_mon("seasonal",rawnc,seasonList,start_ymd,end_ymd,var_parameters[taskname]["fields"],
+                          taskname,casename,shiftday,calendar_cur,units_cur,var_units,var_description,ny,nx)
+        anal_sea_mon("monthly",rawnc,monthlyList,start_ymd,end_ymd,var_parameters[taskname]["fields"],
+                          taskname,casename,shiftday,calendar_cur,units_cur,var_units,var_description,ny,nx)
       rawnc.close() #flush out rawnc
