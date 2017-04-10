@@ -2,6 +2,8 @@ MODULE ARWpost
 
   IMPLICIT NONE
 
+  real, parameter                                              ::gamma_recp=1.0/.0065
+  real, parameter                                              ::g_recp=1.0/9.8
   integer            ::  iprogram = 8                         ! wrfout
   logical            ::  extrapolate=.True. 
 !      integer, parameter :: number_of_zlevs  = 28                 ! no of constant pressure levels
@@ -13,6 +15,7 @@ MODULE ARWpost
   real                                :: missing_value
   parameter (MISSING_VALUE=1.00E30)
 
+   real, parameter :: epsilon0 = 1e-3
    real, parameter :: pi = 3.141592653589793
    real, parameter :: omega_e = 7.292e-5 ! angular rotation rate of the earth
 
@@ -164,42 +167,60 @@ CONTAINS
 
   IF ( vertical_type == 'p' ) THEN
 
+    n_in = 1
     DO n_out = 1, nb
 
       b(n_out) = missing_value
-      interp = .false.
-      n_in = 1
 
-      DO WHILE ( (.not.interp) .and. (n_in < na) )
-        IF( (xa(n_in)   >= xb(n_out)) .and. &
-            (xa(n_in+1) <= xb(n_out))        ) THEN
-          interp = .true.
-          w1 = (xa(n_in+1)-xb(n_out))/(xa(n_in+1)-xa(n_in))
-          w2 = 1. - w1
-          b(n_out) = w1*a(n_in) + w2*a(n_in+1)
+      DO WHILE (  n_in <= na )
+        IF (n_in< na) THEN   
+          IF( abs(xa(n_in)-xb(n_out))<epsilon0) THEN
+            b(n_out) =a(n_in)
+            EXIT
+          ENDIF
+          IF( (xa(n_in)   >= xb(n_out)) .and. &
+              (xa(n_in+1) <= xb(n_out))        ) THEN
+  !         interp = .true.
+            w1 = (xa(n_in+1)-xb(n_out))/(xa(n_in+1)-xa(n_in))
+            w2 = 1. - w1
+            b(n_out) = w1*a(n_in) + w2*a(n_in+1)
+            EXIT
+          END IF
+          n_in = n_in +1
+        ELSE  ! here it means the outpub level b is below the first layer of xa, in this situation, we need to reinitialize the n_in to 1 for nextloop of searching
+          n_in=1
+          EXIT
         END IF
-        n_in = n_in +1
       ENDDO
 
     ENDDO
 
   ELSE
 
+    n_in = 1
     DO n_out = 1, nb
   
       b(n_out) = missing_value
-      interp = .false.
-      n_in = 1
   
-      DO WHILE ( (.not.interp) .and. (n_in < na) )
-        IF( (xa(n_in)   <= xb(n_out)) .and. &
-            (xa(n_in+1) >= xb(n_out))        ) THEN
-          interp = .true.
-          w1 = (xa(n_in+1)-xb(n_out))/(xa(n_in+1)-xa(n_in))
-          w2 = 1. - w1
-          b(n_out) = w1*a(n_in) + w2*a(n_in+1)
+      DO WHILE (  (n_in <= na) )
+        IF (n_in< na) THEN   
+          IF( abs(xa(n_in)-xb(n_out))<epsilon0) THEN
+            b(n_out) =a(n_in)
+            EXIT
+          ENDIF
+          IF( (xa(n_in)   <= xb(n_out)) .and. &
+              (xa(n_in+1) >= xb(n_out))        ) THEN
+!           interp = .true.
+            w1 = (xa(n_in+1)-xb(n_out))/(xa(n_in+1)-xa(n_in))
+            w2 = 1. - w1
+            b(n_out) = w1*a(n_in) + w2*a(n_in+1)
+            EXIT
+          END IF
+          n_in = n_in +1
+        ELSE  ! here it means the outpub level b is below the first layer of xa, in this situation, we need to reinitialize the n_in to 1 for nextloop of searching
+          n_in=1
+          EXIT
         END IF
-        n_in = n_in +1
       ENDDO
 
     ENDDO
@@ -221,7 +242,15 @@ CONTAINS
 
 
   implicit none
+  
  ! Arguments
+!f2py integer,intent(in) ::bottom_top_dim,south_north_dim,west_east_dim,nx,ny,nz
+!f2py real, dimension(bottom_top_dim,south_north_dim,west_east_dim),intent(in) ::z_data,pres,geopt,tk,qv
+!f2py real, dimension(south_north_dim,west_east_dim),intent(in) ::psfc,hgt,
+!f2py real, dimension(nz,ny,nx),intent(in) :: data_in
+!f2py character (len=*), intent(in)                                 ::cname
+!f2py intent(in) vertical_type,number_of_zlevs,z_levs
+!f2py real, dimension(number_of_zlevs,south_north_dim,west_east_dim),intent(out)                           :: data_out
   integer, intent(in)                                                  :: bottom_top_dim,south_north_dim,west_east_dim  
   ! the difference between bottom_top_dim etc. to nx ny nz is nx ny might be stagged
   integer, intent(in)                                                                                :: nx, ny, nz
@@ -238,6 +267,7 @@ CONTAINS
 
 
   ! Local variables
+  real     , dimension(south_north_dim,west_east_dim)                           :: hgt_firstlayer
   real    ,  dimension(bottom_top_dim)  :: data_in_1d  , z_data_1d
   real    ,  dimension(number_of_zlevs) :: data_out_1d
   integer :: nxout                      ,  nyout       , nzout
@@ -250,43 +280,49 @@ CONTAINS
   expon=287.04*.0065/9.81
   exponi=1./expon
 
-    nxout = west_east_dim
-    nyout = south_north_dim
-    nzout = nz
+  nxout = west_east_dim
+  nyout = south_north_dim
+  nzout = nz
 
-    !! We may be dealing with a staggered field
+  !! We may be dealing with a staggered field
 
 
-    DO j=1,west_east_dim
-      DO i=1,south_north_dim
+  DO j=1,west_east_dim
+    DO i=1,south_north_dim
 
       IF ( nx .gt. west_east_dim ) THEN
-        data_in_1d(:) = (data_in(:,i,j)+data_in(:,i+1,j))*0.5
-      ELSE IF ( ny .gt. south_north_dim ) THEN
         data_in_1d(:) = (data_in(:,i,j)+data_in(:,i,j+1))*0.5
+      ELSE IF ( ny .gt. south_north_dim ) THEN
+        data_in_1d(:) = (data_in(:,i,j)+data_in(:,i+1,j))*0.5
       ELSE
         data_in_1d(:) = data_in(:,i,j)
       ENDIF
       call interp_1d( data_in_1d, z_data(:,i,j), bottom_top_dim, &
                       data_out(:,i,j), z_levs, number_of_zlevs,  &
                       vertical_type)
-      ENDDO
     ENDDO
+  ENDDO
+    
       
-    nzout = number_of_zlevs
+  nzout = number_of_zlevs
+  IF (present(GEOPT)) THEN
+    hgt_firstlayer=geopt(1,:,:)*g_recp 
+  ENDIF
 
 
 !!! STOP here if we don't want to extrapolate
-    IF ( .not. extrapolate  .OR. nz .lt. bottom_top_dim ) RETURN
+  IF ( .not. extrapolate  .OR. nz .lt. bottom_top_dim ) RETURN
 
-    IF(cname=="pressure".or.cname=="height".or. cname=="geopt".or. cname(1:1)=='t') THEN
 
       ! first find where about 400hpa/7km is located
       kk = 0
       find_kk : do k = 1, nzout
          kk = k
+!. the vertical level is from small to large
          if ( vertical_type == 'p' .and. z_levs(k) <= 40000. ) exit find_kk
-         if ( vertical_type == 'z' .and. z_levs(k) >= 700. )   exit find_kk
+!cCS corrct the value for z which is supposed to be 7000
+         if ( vertical_type == 'z' .and. z_levs(k) >= 7000. )  exit find_kk
+!.CS
       end do find_kk
 
     
@@ -295,20 +331,22 @@ CONTAINS
         if ( cname=="height" .or. cname=="geopt" .or. &
              cname=="tk" .or. cname=="tc" .or. cname=="theta" ) then
           do k = 1, kk
-            do j = 1, nxout
-            do i = 1, nyout
+           do j = 1, nxout
+           do i = 1, nyout
               if ( data_out(k,i,j) == missing_value .and. z_levs(k) < psfc(i,j) ) then
 
   !             we are below the first model level, but above the ground
   !             we need meter for the calculations so, geopt/g
     
                 zlev = (((z_levs(k) - pres(1,i,j))*hgt(i,j) +  &
-                       (psfc(i,j) - z_levs(k))*geopt(1,i,j)/9.81 ) /   &
+                       (psfc(i,j) - z_levs(k))*hgt_firstlayer(i,j) ) /   &
                        (psfc(i,j) - pres(1,i,j))) 
-                if ( cname == "height" ) data_out(k,i,j) = zlev / 1000.
+!c CS we want in meter
+                if ( cname == "height" ) data_out(k,i,j) = zlev !/ 1000.
+!. CS we want in meter
                 if ( cname == "geopt" )  data_out(k,i,j) = zlev * 9.81
                 if ( cname(1:1) == "t") then
-                  tlev = tk(1,i,j) + (geopt(1,i,j)/9.81-zlev)*.0065
+                  tlev = tk(1,i,j) + (hgt_firstlayer(i,j)-zlev)*.0065
                   if ( cname == "tk" ) data_out(k,i,j) = tlev 
                   if ( cname == "tc" ) data_out(k,i,j) = tlev - 273.15
                   if ( cname == "theta" ) then
@@ -341,17 +379,20 @@ CONTAINS
                 ENDDO loop_kIN
 
                 pbot=max(PRES(1,i,j),PSFC(i,j))
-                zbot=min(GEOPT(1,i,j)/9.81,HGT(i,j))   ! need height in meter
+                zbot=min(hgt_firstlayer(i,j),HGT(i,j))   ! need height in meter
 
                 tbotextrap=TK(kupper,i,j)*(pbot/PRES(kupper,i,j))**expon
                 tvbotextrap=virtual(tbotextrap,QV(1,i,j))
-
-  !             Calculations use height in meter, but we want the output in km
-                zlev = (zbot+tvbotextrap/.0065*(1.-(z_levs(k)/pbot)**expon)) 
-                IF ( cname == "height" ) data_out(k,i,j) = zlev / 1000.
+! change hard code devide into multi
+!               zlev = (zbot+tvbotextrap/.0065*(1.-(z_levs(k)/pbot)**expon)) 
+                zlev = (zbot+tvbotextrap*gamma_recp*(1.-(z_levs(k)/pbot)**expon)) 
+!.CS
+!c CS we want in meter
+                IF ( cname == "height" ) data_out(k,i,j) = zlev !/ 1000.
+!. CS we want in meter
                 IF ( cname == "geopt" )  data_out(k,i,j) = zlev * 9.81
                 IF ( cname(1:1) == "t") THEN
-                  tlev = TK(1,i,j) + (GEOPT(1,i,j)/9.81-zlev)*.0065
+                  tlev = TK(1,i,j) + (hgt_firstlayer(i,j)-zlev)*.0065
                   IF ( cname == "tk" ) data_out(k,i,j) = tlev 
                   IF ( cname == "tc" ) data_out(k,i,j) = tlev - 273.15
                   IF ( cname == "theta" ) THEN
@@ -377,22 +418,36 @@ CONTAINS
           DO k = 1, kk
             DO j = 1, nxout
             DO i = 1, nyout
-              IF ( data_out(k,i,j) == MISSING_VALUE .AND. 1000.*z_levs(k) > HGT(i,j) ) THEN
+!c change the km into m CS
+!             IF ( data_out(k,i,j) == MISSING_VALUE .AND. 1000.*z_levs(k) > HGT(i,j) ) THEN
+              IF ( data_out(k,i,j) == MISSING_VALUE .AND. z_levs(k) > HGT(i,j) ) THEN
+!.CS
 
   !             We are below the first model level, but above the ground
   !             We need meter for the calculations so, GEOPT/G
     
-                plev = (((1000.*z_levs(k) - GEOPT(1,i,j)/9.81)*PSFC(i,j) +  &
-                       (HGT(i,j) - 1000.*z_levs(k))*PRES(1,i,j)) /   &
-                       (HGT(i,j) - GEOPT(1,i,j)/9.81)) 
+!c change the km into m CS
+!               plev = (((1000.*z_levs(k) - hgt_firstlayer(i,j))*PSFC(i,j) +  &
+!                      (HGT(i,j) - 1000.*z_levs(k))*PRES(1,i,j)) /   &
+!                      (HGT(i,j) - hgt_firstlayer(i,j))) 
+                plev = (((z_levs(k) - hgt_firstlayer(i,j))*PSFC(i,j) +  &
+                       (HGT(i,j) - z_levs(k))*PRES(1,i,j)) /   &
+                       (HGT(i,j) - hgt_firstlayer(i,j))) 
+!.CS
                 IF ( cname == "pressure" ) data_out(k,i,j) = plev * 0.01
                 IF ( cname(1:1) == "t") THEN
-                  tlev = TK(1,i,j) + (GEOPT(1,i,j)/9.81-1000.*z_levs(k))*.0065
+!c change the km into m CS
+!                 tlev = TK(1,i,j) + (hgt_firstlayer(i,j)-1000.*z_levs(k))*.0065
+                  tlev = TK(1,i,j) + (hgt_firstlayer(i,j)-z_levs(k))*.0065
+!.CS
                   IF ( cname == "tk" ) data_out(k,i,j) = tlev 
                   IF ( cname == "tc" ) data_out(k,i,j) = tlev - 273.15
                   IF ( cname == "theta" ) THEN
                     gamma = (287.04/1004.)*(1.+(0.608-0.887)*QV(k,i,j))
-                    data_out(k,i,j) = tlev * (1000./plev)**gamma
+!c change the km into m CS
+!                   data_out(k,i,j) = tlev * (1000./plev)**gamma
+                    data_out(k,i,j) = tlev * (100000./plev)**gamma
+!.CS
                   ENDIF
                 ENDIF
     
@@ -420,21 +475,31 @@ CONTAINS
                 ENDDO loop_kIN_z
 
                 pbot=max(PRES(1,i,j),PSFC(i,j))
-                zbot=min(GEOPT(1,i,j)/9.81,HGT(i,j))   ! need height in meter
+                zbot=min(hgt_firstlayer(i,j),HGT(i,j))   ! need height in meter
 
                 tbotextrap=TK(kupper,i,j)*(pbot/PRES(kupper,i,j))**expon
                 tvbotextrap=virtual(tbotextrap,QV(1,i,j))
 
   !             Calculations use height in meter, but we want the output in km
-                plev = pbot*(1.+0.0065/tvbotextrap*(zbot-1000.*z_levs(k)))**exponi
+!c change the km into m CS
+!               plev = pbot*(1.+0.0065/tvbotextrap*(zbot-1000.*z_levs(k)))**exponi
+                plev = pbot*(1.+0.0065/tvbotextrap*(zbot-z_levs(k)))**exponi
+!.CS
                 IF ( cname == "pressure" ) data_out(k,i,j) = plev * 0.01
                 IF ( cname(1:1) == "t") THEN
-                  tlev = TK(1,i,j) + (GEOPT(1,i,j)/9.81-1000.*z_levs(k))*.0065
+!c change the km into m CS
+!                 tlev = TK(1,i,j) + (hgt_firstlayer(i,j)-1000.*z_levs(k))*.0065
+                  tlev = TK(1,i,j) + (hgt_firstlayer(i,j)-z_levs(k))*.0065
+!.CS
+                IF ( cname == "pressure" ) data_out(k,i,j) = plev * 0.01
                   IF ( cname == "tk" ) data_out(k,i,j) = tlev 
                   IF ( cname == "tc" ) data_out(k,i,j) = tlev - 273.15
                   IF ( cname == "theta" ) THEN
                     gamma = (287.04/1004.)*(1.+(0.608-0.887)*QV(k,i,j))
-                    data_out(k,i,j) = tlev * (1000./plev)**gamma
+!c change the mba into Pa CS
+!                   data_out(k,i,j) = tlev * (1000./plev)**gamma
+                    data_out(k,i,j) = tlev * (100000./plev)**gamma
+!.CS
                   ENDIF
                 ENDIF
                 
@@ -450,7 +515,6 @@ CONTAINS
 
 
       !!! All fields and geopt at higher levels come here
-  ELSE
       DO j = 1, nxout
       DO i = 1, nyout
         DO k = 1, kk     
@@ -461,7 +525,6 @@ CONTAINS
         END DO
       END DO
       END DO
-  ENDIF
 
 
 
@@ -1112,16 +1175,12 @@ CONTAINS
 
   !Arguments
     integer i,j
-!    DO i = 1,west_east_dim
-!      DO j = 1,south_north_dim          !! BIG i/j loop
-    DO i = 1,1
-      DO j = 1,1          !! BIG i/j loop
+    DO i = 1,west_east_dim
+      DO j = 1,south_north_dim          !! BIG i/j loop
         td(:)=tdewq(qv(:,j,i),pres(:,j,i)) 
         call getcape(nk=bottom_top_dim, p_in=pres(:,j,i) ,t_in=tc(:,j,i),td_in=td(:)    , cape=cape(j,i),cin=cin(j,i)) 
-!        print*,cape(j,i),cin(j,i)
       END DO
     END DO
-  stop
 
 
 
@@ -1246,7 +1305,6 @@ CONTAINS
         q(k) = getqvs(p(k),td(k))
        th(k) = t(k)/pi(k)
       thv(k) = th(k)*(1.0+reps*q(k))/(1.0+q(k))
-      print*,pi(k),q(k),th(k),thv(k)
     enddo
 
 !---- get height using the hydrostatic equation ----!
@@ -1255,7 +1313,6 @@ CONTAINS
     do k=2,nk
       dz = -cpdg*0.5*(thv(k)+thv(k-1))*(pi(k)-pi(k-1))
       z(k) = z(k-1) + dz
-      print*,z(k)
     enddo
 
 !---- find source parcel ----!
