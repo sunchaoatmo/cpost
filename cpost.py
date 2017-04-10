@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import subprocess
 import numpy as np
 from writenc import createnc
 from netCDF4 import Dataset
@@ -8,15 +7,16 @@ from netCDF4 import date2num,num2date
 from datetime import datetime,timedelta
 from constant import *   # only several constants
 from POSTparameter import postList,var_parameters
-from argument import args
+from argument import args,wrfinputnc,r95tnc
 import glob
 import os.path
+import time
+from subprocess import check_output,call
 
 # This code assumes each wrfout file contains one full day of output 
 # and that all data is consecutive (no gaps)
 
-
-MATCHINE=subprocess.check_output("uname -a" , shell=True)
+MATCHINE=check_output("uname -a" , shell=True)
 calendar_cur=args.calendar
 periods=args.p[0]
 casename=args.n
@@ -46,7 +46,7 @@ if args.sjob:
          line=line.replace("VAR",','.join(tasknames))
          fout.write(line)
   cmd="qsub "+job_t
-  subprocess.call(cmd,shell=True)
+  call(cmd,shell=True)
 else:
   if args.mpi:
     import imp
@@ -80,16 +80,18 @@ else:
       if taskname in ncfile_last.variables:
         var_units[taskname]  =ncfile_last.variables[taskname].units
         var_description[taskname]  =ncfile_last.variables[taskname].description
-        outputdim=len(ncfile_last.variables[taskname].shape)
+        varshape =ncfile_last.variables[taskname].shape
+        nz       =varshape[1]
+        outputdim=len(varshape)
       else:
         outputdim=var_parameters[taskname]['dim']
         for field in var_parameters[taskname]["fields"]:
           var_units[field]=var_parameters[taskname]["fields"][field]['units']
           var_description[field]=var_parameters[taskname]["fields"][field]['description']
+        nz=ncfile_last.dimensions['bottom_top'].size
       nstep=ncfile_last.dimensions['Time'].size
       ny=ncfile_last.dimensions['south_north'].size
       nx=ncfile_last.dimensions['west_east'].size
-      nz=ncfile_last.dimensions['bottom_top'].size
       if outputdim==3:
         nlev=1
       elif outputdim==4:
@@ -128,16 +130,16 @@ else:
             if len(curtime)==nstep:
               if periods=="daily":
                 if compute_mode==6:
-                  if taskname=="PRAVG":
+                  if taskname=="PR":
                     for field in var_parameters[taskname]["fields"]:
-                      outputdata[field][iday,:,:]=(ncfile_cur.variables['RAINC'][0,:,:]-ncfile_last.variables['RAINC'][0,:,:]
+                      if field =="PRAVG":
+                        outputdata[field][iday,:,:]=(ncfile_cur.variables['RAINC'][0,:,:]-ncfile_last.variables['RAINC'][0,:,:]
                                            +ncfile_cur.variables['RAINNC'][0,:,:]-ncfile_last.variables['RAINNC'][0,:,:])
                   else:
                     for field in var_parameters[taskname]["fields"]:
                       outputdata[field][iday,:,:]=ncfile_cur.variables[taskname][0,:,:]-ncfile_last.variables[taskname][0,:,:]
                 elif compute_mode==1:
-                  from default import wrfinput
-                  anal_daily(iday,outputdata,ncfile_cur,wrfinput,taskname,
+                  anal_daily(iday,outputdata,ncfile_cur,wrfinputnc,taskname,
                             var_parameters[taskname]["fields"],var_parameters[taskname]["vert_intp"],outputdim,z_levs,number_of_zlevs)
                 outputtime[iday]=date2num( date_curstep,units=units_cur,calendar=calendar_cur)
               else:
@@ -171,8 +173,10 @@ else:
         nctime=rawnc.variables["time"]
         start_ymd=num2date(nctime[0],units=units_cur,calendar=calendar_cur)
         end_ymd  =num2date(nctime[-1],units=units_cur,calendar=calendar_cur)
-        anal_sea_mon("seasonal",rawnc,seasonList,start_ymd,end_ymd,var_parameters[taskname]["fields"],
-                          taskname,casename,shiftday,calendar_cur,units_cur,var_units,var_description,ny,nx)
-        anal_sea_mon("monthly",rawnc,monthlyList,start_ymd,end_ymd,var_parameters[taskname]["fields"],
-                          taskname,casename,shiftday,calendar_cur,units_cur,var_units,var_description,ny,nx)
+        anal_sea_mon("seasonal",rawnc,seasonList,start_ymd,end_ymd,var_parameters[taskname]["fields"].keys(),
+                          taskname,casename,shiftday,calendar_cur,units_cur,var_units,var_description,ny,nx,nlev,r95tnc)
+        anal_sea_mon("monthly",rawnc,monthlyList,start_ymd,end_ymd,var_parameters[taskname]["fields"].keys(),
+                          taskname,casename,shiftday,calendar_cur,units_cur,var_units,var_description,ny,nx,nlev,r95tnc)
       rawnc.close() #flush out rawnc
+
+
