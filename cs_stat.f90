@@ -1090,6 +1090,8 @@ end subroutine
  END SUBROUTINE  precp_extrem
 
  SUBROUTINE  quantile_cal(pre_quantile,quantile,dry_lim,qvalue,ntimes,nx,ny)
+!f2py intent(in) qvalue,dry_lim,pre_quantile
+!f2py intent(out) quantile
    IMPLICIT NONE 
    INTEGER, intent(in)::ntimes,nx,ny
    REAL, intent(in)   ::qvalue
