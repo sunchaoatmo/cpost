@@ -160,6 +160,8 @@ var_parameters = {
                                 "CIN":{"units":"J/kg","description":"Convective Inhibition"} }} , 
 "geopt"     : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : "p"  ,"dim":4,
                        "fields":{"geopt":{"units":"m2 s-2","description":"Geopotential"} }} , 
+"height"    : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : "p"  ,"dim":4,
+                       "fields":{"height":{"units":"m","description":"Height"} }} , 
 "uv_met"    : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : "p"  ,"dim":4,
                        "fields":{
                               "u_met":{"units":"m s-1","description":"Rotated u-wind component"} ,
