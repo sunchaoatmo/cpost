@@ -18,9 +18,9 @@ from subprocess import check_output,call
 
 MATCHINE=check_output("uname -a" , shell=True)
 calendar_cur=args.calendar
-periods=args.p[0]
+periods=args.p
 casename=args.n
-tasknames=args.v if args.v else postList[args.p]
+tasknames=args.v if args.v else postList[periods]
 z_levs=args.z_levs
 number_of_zlevs=len(z_levs)
 

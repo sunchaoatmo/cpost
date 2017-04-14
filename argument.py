@@ -37,8 +37,6 @@ parser.add_argument('--z_levs', '-z', nargs='+',help='level to interpolate',defa
 args = parser.parse_args() 
 if args.v:
   args.v=args.v.split(",")
-if args.p:
-  args.p=args.p.split(",")
 configfile=getenv("HOME")+'/.post.ini'
 
 if not path.isfile(configfile):
