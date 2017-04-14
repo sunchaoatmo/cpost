@@ -213,7 +213,11 @@ monthly_allvars  = (           'PRAVG'     , 'PRMAX'   , 'PRMIN'    , 'RAINC'   
 				 	)
 
 # save daily data of following vars 
-daily_allvars    =["XWLIQ","XWICE","SNOW","SNOWH","XZWT","XRBAS","XRDRN","XRSAT","XOUTFLOW","UDROFF"]
+daily_allvars    =["XWLIQ","XWICE","SNOW","SNOWH",
+                   "XZWT","XRBAS","XRDRN","XRSAT","XOUTFLOW",
+                   "UDROFF","uv_met","height",
+                   "PRAVG","AT2M","QFX","LH","CLDFRA",
+                   "TCWPC"   , "TCWPI"     , "TCWPR"   ] 
 """
 daily_allvars    = (        'W'         , 'PRMAX'   ,   'RAINC'  ,'RAINNC'  ,
                             'AT2M'      , 'T2MAX'   , 'T2MIN'    , 'SFROFF' , 'CLDFRAg' , 
