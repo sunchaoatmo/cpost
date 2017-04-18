@@ -37,37 +37,34 @@ if args.sjob:
     nodes=nprocs/20+1
   else:
     nodes=nprocs/32+1
-  job_t="job_temp_%s.pbs"%str(args.p[0])
+  job_t="job_temp_%s.pbs"%str(args.p)
   with open('job_default.pbs', 'r') as fin:
     with open(job_t, 'w') as fout:
        for line in fin:
          line=line.replace("NPROCS",str(nprocs))
-         line=line.replace("PERIOD",str(args.p[0]))
+         line=line.replace("PERIOD",str(args.p))
          line=line.replace("VAR",','.join(tasknames))
          fout.write(line)
   cmd="qsub "+job_t
   call(cmd,shell=True)
 else:
   if args.mpi:
-    import imp
     from mpi4py import MPI
     comm = MPI.COMM_WORLD
     nprocs = comm.Get_size()
     rank = comm.Get_rank()
+    print("my rank %s"%rank)
     if nprocs>=len(tasknames):
       try:
         var_loc =tasknames[rank]
-        cmd="post.py -p "+args.p[0] +" -v "+var_loc
+        cmd="cpost.py --calendar noleap -p "+args.p +" -v "+var_loc
         print(cmd,rank)
-        subprocess.call(cmd,shell=True)
+        call(cmd,shell=True)
         print("call finished on case %s " % (cmd))
       except:
-        import sys, traceback
-        traceback.print_exc(file=sys.stdout)
-        sys.exit("ERROR in %s rank %s"%(cmd,rank))
+        print("ERROR in %s rank %s"%(cmd,rank))
     else:
-      print("we don't have enough CPU %s there are %s tasks %s cases %s vars %s years"
-                                 % (nprocs,tot_year*tot_case*tot_postvar, tot_case,tot_postvar,tot_year))
+      print("we don't have enough CPU ")
     comm.Barrier()
   else:
     for taskname in tasknames:
@@ -122,42 +119,46 @@ else:
         for field in var_parameters[taskname]["fields"]:
           outputdata[field]=np.empty([nt,nlev,ny,nx])
         simbeg_date=wrftimetodate(Dataset(filenames[shiftday],'r').variables['Times'][0])
+        simbeg_num =date2num( simbeg_date,units=units_cur,calendar=calendar_cur)
         for iday,filename in enumerate(filenames[shiftday:]):
           ncfile_cur=Dataset(filename,'r')
           curtime=ncfile_cur.variables['Times']
           date_curstep=wrftimetodate(curtime[0])
-          if date_curstep==iday*Oneday+simbeg_date:
-            if len(curtime)==nstep:
-              if periods=="daily":
-                if compute_mode==6:
-                  if taskname=="PR":
-                    for field in var_parameters[taskname]["fields"]:
-                      if field =="PRAVG":
-                        outputdata[field][iday,:,:]=(ncfile_cur.variables['RAINC'][0,:,:]-ncfile_last.variables['RAINC'][0,:,:]
-                                           +ncfile_cur.variables['RAINNC'][0,:,:]-ncfile_last.variables['RAINNC'][0,:,:])
-                  else:
-                    for field in var_parameters[taskname]["fields"]:
-                      outputdata[field][iday,:,:]=ncfile_cur.variables[taskname][0,:,:]-ncfile_last.variables[taskname][0,:,:]
-                elif compute_mode==1:
-                  anal_daily(iday,outputdata,ncfile_cur,wrfinputnc,taskname,
-                            var_parameters[taskname]["fields"],var_parameters[taskname]["vert_intp"],outputdim,z_levs,number_of_zlevs)
-                outputtime[iday]=date2num( date_curstep,units=units_cur,calendar=calendar_cur)
+          if periods=="daily":
+            outputtime[iday]=date2num( wrftimetodate(curtime[0]),units=units_cur,calendar=calendar_cur)
+          else:
+            for istep in range(nstep):
+              outputtime[iday*nstep+istep]=date2num( wrftimetodate(curtime[istep]),units=units_cur,calendar=calendar_cur)
+
+# check of the intergrty of data
+          if not len(curtime)==nstep:
+            if filename == filenames[-1]:     # it is OK sometimes the last wrfout can be incomplete, the simulation can restart from it later on
+              break
+            else:
+              import sys
+              sys.exit("STOP! one wrfout is incomplete %s ",(filename))
+
+          if not outputtime[iday]==iday+simbeg_num:
+            import sys
+            sys.exit("STOP! one day is missing in wrfout serial ")
+# check of the intergrty of data
+
+          if periods=="daily":
+            if compute_mode==6:
+              if taskname=="PR":
+                outputdata["PRAVG"][iday,:,:]=(ncfile_cur.variables['RAINC'][0,:,:]-ncfile_last.variables['RAINC'][0,:,:]
+                                   +ncfile_cur.variables['RAINNC'][0,:,:]-ncfile_last.variables['RAINNC'][0,:,:])
               else:
                 for field in var_parameters[taskname]["fields"]:
-                  outputdata[field][iday*nstep:(iday+1)*nstep,:,:]=ncfile_cur.variables[taskname][:,:,:]
-                for istep in range(nstep):
-                  outputtime[iday*nstep+istep]=date2num( wrftimetodate(curtime[istep]),units=units_cur,calendar=calendar_cur)
-              print(date_curstep)
-            else:
-              if filename == filenames[-1]:
-                break
-              else:
-                import sys
-                sys.exit("STOP! one wrfout is incomplete %s ",(filename))
+                  outputdata[field][iday,:,:]=ncfile_cur.variables[taskname][0,:,:]-ncfile_last.variables[taskname][0,:,:]
+            elif compute_mode==1:
+              anal_daily(iday,outputdata,ncfile_cur,wrfinputnc,taskname,
+                        var_parameters[taskname]["fields"],var_parameters[taskname]["vert_intp"],outputdim,z_levs,number_of_zlevs)
           else:
-            print(date_curstep)
-            import sys
-            sys.exit("STOP! one day is missing bettween output %s and %s",(filenames[iday],filenames[iday-1]))
+            for field in var_parameters[taskname]["fields"]:
+              outputdata[field][iday*nstep:(iday+1)*nstep,:,:]=ncfile_cur.variables[taskname][:,:,:]
+          print(date_curstep)
+
           ncfile_last=ncfile_cur
 
         for field in var_parameters[taskname]["fields"]:
@@ -178,5 +179,3 @@ else:
         anal_sea_mon("monthly",rawnc,monthlyList,start_ymd,end_ymd,var_parameters[taskname]["fields"].keys(),
                           taskname,casename,shiftday,calendar_cur,units_cur,var_units,var_description,ny,nx,nlev,r95tnc)
       rawnc.close() #flush out rawnc
-
-
