@@ -61,8 +61,8 @@ var_parameters = {
 "AQ2M"             : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"AQ2M":None}} , 
 "T2MAX"            : { "compute_mode" : 8  , "shiftday" : 1  , "vert_intp" : None ,"fields":{"T2MAX":None}} , 
 "T2MIN"            : { "compute_mode" : 9  , "shiftday" : 1  , "vert_intp" : None ,"fields":{"T2MIN":None}} , 
-"RAINC"            : { "compute_mode" : 5  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"RAINC":None}} , 
-"RAINNC"           : { "compute_mode" : 5  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"RAINNC":None}} , 
+"RAINC"            : { "compute_mode" : 6  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"RAINC":None}} , 
+"RAINNC"           : { "compute_mode" : 6  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"RAINNC":None}} , 
 "CDD"              : { "compute_mode" : 12 , "shiftday" : 0  , "vert_intp" : None ,"fields":{"CDD":None}} , 
 "RAINYDAYS"        : { "compute_mode" : 13 , "shiftday" : 0  , "vert_intp" : None ,"fields":{"RAINYDAYS":None}} , 
 "R10"              : { "compute_mode" : 13 , "shiftday" : 0  , "vert_intp" : None ,"fields":{"R10":None}} , 
@@ -213,11 +213,17 @@ monthly_allvars  = (           'PRAVG'     , 'PRMAX'   , 'PRMIN'    , 'RAINC'   
 				 	)
 
 # save daily data of following vars 
-daily_allvars    =["XWLIQ","XWICE","SNOW","SNOWH",
-                   "XZWT","XRBAS","XRDRN","XRSAT","XOUTFLOW",
-                   "UDROFF","uv_met","height",
-                   "PRAVG","AT2M","QFX","LH","CLDFRA",
-                   "TCWPC"   , "TCWPI"     , "TCWPR"   ] 
+daily_allvars    =[ 'PR',     'RAINC',   'RAINNC',
+                   'AU10',    'AV10',    'AQ2M',   'SST',
+                    'AT2M',   'T2MAX',   'T2MIN',
+                    'PSFC',   'EMISS',   'QFX',    'LH',
+                    'CLDFRA',
+                  'ASWUPT',   'ASWUPTC', 'ASWDNT', 'ASWDNS',  'ASWDNSC',  'ASWUPS',  'ASWUPSC',
+                  'ALWUPT',   'ALWUPTC', 'ALWDNS', 'ALWDNSC', 'ALWUPS',   'ALWUPSC',
+                   'XWLIQ',   'XWICE',   'SNOW',   'SNOWH',
+                   'XZWT',    'XRBAS',   'XRDRN',  'XRSAT',   'XOUTFLOW',
+                   'UDROFF',  'uv_met',  'height',
+                   'TCWPC',   'TCWPI',   'TCWPR'   ]
 """
 daily_allvars    = (        'W'         , 'PRMAX'   ,   'RAINC'  ,'RAINNC'  ,
                             'AT2M'      , 'T2MAX'   , 'T2MIN'    , 'SFROFF' , 'CLDFRAg' , 
