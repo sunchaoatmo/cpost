@@ -151,9 +151,9 @@ else:
               else:
                 for field in var_parameters[taskname]["fields"]:
                   outputdata[field][iday,:,:]=ncfile_cur.variables[taskname][0,:,:]-ncfile_last.variables[taskname][0,:,:]
-            elif compute_mode==1:
+            else:
               anal_daily(iday,outputdata,ncfile_cur,wrfinputnc,taskname,
-                        var_parameters[taskname]["fields"],var_parameters[taskname]["vert_intp"],outputdim,z_levs,number_of_zlevs)
+                        var_parameters[taskname]["fields"],var_parameters[taskname]["vert_intp"],outputdim,z_levs,number_of_zlevs,compute_mode)
           else:
             for field in var_parameters[taskname]["fields"]:
               outputdata[field][iday*nstep:(iday+1)*nstep,:,:]=ncfile_cur.variables[taskname][:,:,:]
@@ -171,11 +171,8 @@ else:
 
 ########################DIAG PART#################################
       if periods=="daily":
-        nctime=rawnc.variables["time"]
-        start_ymd=num2date(nctime[0],units=units_cur,calendar=calendar_cur)
-        end_ymd  =num2date(nctime[-1],units=units_cur,calendar=calendar_cur)
-        anal_sea_mon("seasonal",rawnc,seasonList,start_ymd,end_ymd,var_parameters[taskname]["fields"].keys(),
+        anal_sea_mon("seasonal",rawnc,seasonList,var_parameters[taskname]["fields"].keys(),
                           taskname,casename,shiftday,calendar_cur,units_cur,var_units,var_description,ny,nx,nlev,r95tnc)
-        anal_sea_mon("monthly",rawnc,monthlyList,start_ymd,end_ymd,var_parameters[taskname]["fields"].keys(),
+        anal_sea_mon("monthly",rawnc,monthlyList,var_parameters[taskname]["fields"].keys(),
                           taskname,casename,shiftday,calendar_cur,units_cur,var_units,var_description,ny,nx,nlev,r95tnc)
       rawnc.close() #flush out rawnc

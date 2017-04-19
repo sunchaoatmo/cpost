@@ -1,6 +1,6 @@
 import numpy as np
 
-def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,outputdim,z_levs,number_of_zlevs):
+def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,outputdim,z_levs,number_of_zlevs,compute_mode):
   from constant import RCP,p0
   from ARWpost import arwpost
   import time
@@ -98,15 +98,25 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,outputdim,z
       else:
         metfield=wrf_o.variables[taskname]
       if outputdim==3:
-        outputdata[field][iday,:,:]=np.mean(metfield,axis=0)
+        if compute_mode==1:
+          outputdata[field][iday,:,:]=np.mean(metfield,axis=0)
+        elif compute_mode==8:
+          outputdata[field][iday,:,:]=np.max(metfield,axis=0)
+        elif compute_mode==9:
+          outputdata[field][iday,:,:]=np.min(metfield,axis=0)
       elif  outputdim==4:
-        outputdata[field][iday,:,:,:]=np.mean(metfield,axis=0)
+        if compute_mode==1:
+          outputdata[field][iday,:,:,:]=np.mean(metfield,axis=0)
+        elif compute_mode==8:
+          outputdata[field][iday,:,:,:]=np.max(metfield,axis=0)
+        elif compute_mode==9:
+          outputdata[field][iday,:,:,:]=np.min(metfield,axis=0)
       else:
         print("can only output to 3 or 4 dim")
 
   return 
 
-def anal_sea_mon(periods,rawnc,monthList,start_ymd,end_ymd,fields,taskname,casename,shiftday,calendar_cur,time_units,units,description,nx,ny,nz,r95t_hist):
+def anal_sea_mon(periods,rawnc,monthList,fields,taskname,casename,shiftday,calendar_cur,time_units,units,description,nx,ny,nz,r95t_hist):
   import numpy.ma as ma
   from cs_stat import cs_stat
   from netCDF4 import date2num,num2date
@@ -118,9 +128,13 @@ def anal_sea_mon(periods,rawnc,monthList,start_ymd,end_ymd,fields,taskname,casen
   import time
   from writenc import createsmnc
   dodiag=False
-  Oneday=timedelta(days=1)
+  nctime=rawnc.variables["time"]
+  start_ymd=num2date(nctime[0],units=time_units,calendar=calendar_cur)
+  end_ymd  =num2date(nctime[-1],units=time_units,calendar=calendar_cur)
+  beg_num =date2num( datetime(start_ymd.year,12,1),units=time_units,calendar=calendar_cur)
+  end_num =date2num( datetime(  end_ymd.year,12,1),units=time_units,calendar=calendar_cur)
 
-  if datetime(start_ymd.year,12,1)+shiftday*Oneday>=start_ymd and datetime(end_ymd.year,11,1)<=end_ymd and start_ymd.year<end_ymd.year: 
+  if beg_num+shiftday>=nctime[0] and end_num<=nctime[-1] and start_ymd.year<end_ymd.year: 
     diagfname="%s_%s_%s.nc"%(casename,taskname,periods)
     diagexist=os.path.isfile(diagfname) 
     if diagexist:
