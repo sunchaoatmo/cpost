@@ -80,26 +80,36 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,outputdim,z
       outputdata["v_met"][iday,:,:,:]=ve
   else:
     if taskname=="conv":
-      cape=np.zeros((ntime,south_north,west_east))
-      cin =np.zeros((ntime,south_north,west_east))
+      cape=np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
+      cin =np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
+      hgt  =wrf_i.variables['HGT'][0,:,:]
+      phb  =wrf_i.variables['PHB'][0,:,:,:]
       for itime in range(ntime):
         p    =wrf_o.variables['P'][itime,:,:,:]
         pres =p+pb
         qv   =wrf_o.variables['QVAPOR'][itime,:,:,:]
         t  =wrf_o.variables['T'][itime,:,:,:]
         tc =-273.15+(t+300.) * ( pres / p0 )**RCP
-        arwpost.getcape_3d( pres=pres , tc=tc, qv=qv, cape=cape[itime,:,:] , cin=cin[itime,:,:],
-                            bottom_top_dim= bottom_top, south_north_dim=south_north , west_east_dim=west_east)
+        tk = (t+300.) * ( pres / p0 )**RCP
+        ph   =wrf_o.variables['PH'][itime,:,:,:]
+        geopt_w=ph+phb
+        psfc =wrf_o.variables['PSFC'][itime,:,:]
+        geopt=(geopt_w[1:,:,:]+geopt_w[:-1,:,:])/2.0
+        arwpost.calc_cape(cape_out=cape, cin_out=cin,itime=itime, 
+                      hgt=hgt,  qv_in=qv,  pres_in=pres, tk_in=tk, geopt_in=geopt,psfc=psfc,
+             bottom_top_dim=bottom_top       , south_north_dim=south_north     , west_east_dim=west_east,ntime=ntime)
     for field in fields:
       if field=="CAPE":
         metfield=cape
       elif field=="CIN":
         metfield=cin
       else:
-        metfield=wrf_o.variables[taskname]
+        metfield=wrf_o.variables[field]
       if outputdim==3:
         if compute_mode==1:
           outputdata[field][iday,:,:]=np.mean(metfield,axis=0)
+        elif compute_mode==2:
+          outputdata[field][iday,:,:]=np.mean(np.sum(metfield,axis=1),axis=0)
         elif compute_mode==8:
           outputdata[field][iday,:,:]=np.max(metfield,axis=0)
         elif compute_mode==9:
