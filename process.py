@@ -59,7 +59,7 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,outputdim,z
         elif taskname=="dbz":
         """
 #       outputdata[field][iday,:,:,:]+= arwpost.interp(
-        outputdata[field][iday,:,:,:]+= arwpost.interp(
+        outputdata[field][:,:,:]+= arwpost.interp(
 #             data_out=temp,
              cname=field                     , vertical_type=vert_intp         , 
              data_in=metfield                , 
@@ -70,14 +70,14 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,outputdim,z
              nx =nx                          , ny =ny                          , nz=nz                        , 
              bottom_top_dim=bottom_top       , south_north_dim=south_north     , west_east_dim=west_east)
     for field in fields:
-      outputdata[field][iday,:,:,:]=outputdata[field][iday,:,:,:]/ntime
+      outputdata[field][:,:,:]=outputdata[field][:,:,:]/ntime
     if taskname=="uv_met":
-      ur=outputdata["u_met"][iday,:,:,:]
-      vr=outputdata["v_met"][iday,:,:,:]
+      ur=outputdata["u_met"][:,:,:]
+      vr=outputdata["v_met"][:,:,:]
       ue = ur * cosalpha - vr * sinalpha
       ve = vr * cosalpha + ur * sinalpha
-      outputdata["u_met"][iday,:,:,:]=ue
-      outputdata["v_met"][iday,:,:,:]=ve
+      outputdata["u_met"][:,:,:]=ue
+      outputdata["v_met"][:,:,:]=ve
   else:
     if taskname=="conv":
       cape=np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
@@ -107,20 +107,20 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,outputdim,z
         metfield=wrf_o.variables[field]
       if outputdim==3:
         if compute_mode==1:
-          outputdata[field][iday,:,:]=np.mean(metfield,axis=0)
+          outputdata[field][:,:]=np.mean(metfield,axis=0)
         elif compute_mode==2:
-          outputdata[field][iday,:,:]=np.mean(np.sum(metfield,axis=1),axis=0)
+          outputdata[field][:,:]=np.mean(np.sum(metfield,axis=1),axis=0)
         elif compute_mode==8:
-          outputdata[field][iday,:,:]=np.max(metfield,axis=0)
+          outputdata[field][:,:]=np.max(metfield,axis=0)
         elif compute_mode==9:
-          outputdata[field][iday,:,:]=np.min(metfield,axis=0)
+          outputdata[field][:,:]=np.min(metfield,axis=0)
       elif  outputdim==4:
         if compute_mode==1:
-          outputdata[field][iday,:,:,:]=np.mean(metfield,axis=0)
+          outputdata[field][:,:,:]=np.mean(metfield,axis=0)
         elif compute_mode==8:
-          outputdata[field][iday,:,:,:]=np.max(metfield,axis=0)
+          outputdata[field][:,:,:]=np.max(metfield,axis=0)
         elif compute_mode==9:
-          outputdata[field][iday,:,:,:]=np.min(metfield,axis=0)
+          outputdata[field][:,:,:]=np.min(metfield,axis=0)
       else:
         print("can only output to 3 or 4 dim")
 
@@ -142,7 +142,7 @@ def anal_sea_mon(periods,rawnc,monthList,fields,taskname,casename,shiftday,calen
   start_ymd=num2date(nctime[0],units=time_units,calendar=calendar_cur)
   end_ymd  =num2date(nctime[-1],units=time_units,calendar=calendar_cur)
   beg_num =date2num( datetime(start_ymd.year,12,1),units=time_units,calendar=calendar_cur)
-  end_num =date2num( datetime(  end_ymd.year,12,1),units=time_units,calendar=calendar_cur)
+  end_num =date2num( datetime(  end_ymd.year,11,30),units=time_units,calendar=calendar_cur)
 
   if beg_num+shiftday>=nctime[0] and end_num<=nctime[-1] and start_ymd.year<end_ymd.year: 
     diagfname="%s_%s_%s.nc"%(casename,taskname,periods)

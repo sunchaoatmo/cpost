@@ -716,9 +716,14 @@ CONTAINS
 
   END SUBROUTINE CAPE_init
 
-  SUBROUTINE calc_cape(cape, cin, &
-                      hgt,  qv,  pres, tk, geopt,psfc,&
-                      bottom_top_dim          , south_north_dim , west_east_dim)
+  SUBROUTINE calc_cape(cape_out, cin_out, itime,      &
+                      hgt,  qv_in,  pres_in, tk_in, geopt_in,psfc,&
+                      bottom_top_dim          , south_north_dim , west_east_dim,ntime)
+
+!f2py intent(in) bottom_top_dim,south_north_dim,west_east_dim
+!f2py intent(in) hgt,psfc,qv,pres,tk,geopt
+!f2py intent(inplace) cape_out,cin_cin
+!f2py depend(ntime,south_north_dim,west_east_dim) cin_out,cape_out
 
 !   If i3dflag=1, this routine calculates CAPE and CIN (in m**2/s**2,
 !   or J/kg) for every grid point in the entire 3D domain (treating
@@ -733,27 +738,29 @@ CONTAINS
 
   IMPLICIT NONE
 
-  integer,parameter::i3dflag=1 ! currently, I only use the 3D function for my study
+  integer,parameter::i3dflag=0
 
-!f2py intent(in) bottom_top_dim,south_north_dim,west_east_dim
-!f2py intent(in) hgt,psfc,qv,pres,tk,geopt
-!f2py intent(out) cin,cape
-!f2py depend(bottom_top_dim,south_north_dim,west_east_dim) cin,cape
 
-  integer, intent(in)                                                  :: bottom_top_dim,south_north_dim,west_east_dim  
+  integer, intent(in)                                                  :: bottom_top_dim,south_north_dim,west_east_dim,ntime 
+  integer, intent(in)                                                  :: itime
   real, dimension(               south_north_dim,west_east_dim),intent(in)                           :: HGT
   real, dimension(               south_north_dim,west_east_dim),intent(in)                           :: PSFC
-  real, dimension(bottom_top_dim,south_north_dim,west_east_dim),intent(in)                           :: QV
-  real, dimension(bottom_top_dim,south_north_dim,west_east_dim),intent(in)                           :: PRES
-  real, dimension(bottom_top_dim,south_north_dim,west_east_dim),intent(in)                           :: TK
-  real, dimension(bottom_top_dim,south_north_dim,west_east_dim),intent(in)                           :: GEOPT
+
+  real, dimension(bottom_top_dim,south_north_dim,west_east_dim),intent(in)                           :: QV_in
+  real, dimension(bottom_top_dim,south_north_dim,west_east_dim),intent(in)                           :: PRES_in
+  real, dimension(bottom_top_dim,south_north_dim,west_east_dim),intent(in)                           :: TK_in
+  real, dimension(bottom_top_dim,south_north_dim,west_east_dim),intent(in)                           :: GEOPT_in
+
+  real, dimension(bottom_top_dim,south_north_dim,west_east_dim)                                      :: QV
+  real, dimension(bottom_top_dim,south_north_dim,west_east_dim)                                      :: TK
 
 
 
   !Arguments
-  real, dimension(bottom_top_dim,south_north_dim,west_east_dim),intent(out)  :: cape, cin
+  real, dimension(ntime         ,south_north_dim,west_east_dim),intent(inout)  :: cape_out, cin_out
 
   ! Local variables
+  real, dimension(bottom_top_dim,south_north_dim,west_east_dim)              :: cape, cin
   integer                                                        :: i, j, k, kk, jt, ip
   integer                                                        :: kpar, kpar1, kpar2, kmax, klev, kel
   integer                                                        :: ilcl, klcl, klfc
@@ -769,23 +776,37 @@ CONTAINS
   real                                                           :: fac1, fac2, facden, th, deltap
   real                                                           :: benamin, davg, pavg, pressure, temp
   real                                                           :: e, eth, ethmax, q, dz, cpm
+  integer                                                        :: rev
 
   
   !! Get fields we want from the ones we have
     
-     prs      = PRES * 0.01                ! pressure in hPa
-     ght      = GEOPT / G                  ! height in m
+!     prs      = PRES * 0.01                ! pressure in hPa
+!       ght(k,:,:)      = GEOPT(kdd) / G                  ! height in m
 
 
   !! First calculate a pressure array on FULL SIGMA levels
   !! Similar to the pfcalc.f routine from RIP4
   !! Top full sigma level is ommitted
-     prsf(:,:,1) = PSFC(:,:)             !! Lowest full sigma set to surface pressure
+
+
+     DO k = bottom_top_dim,1,-1
+       prs(k,:,:)=PRES_in(rev,:,:)*0.01
+       rev=bottom_top_dim-k+1
+       ght (k,:,:)=GEOPT_in(rev,:,:)/G
+       tk (k,:,:)=TK_in(rev,:,:)
+       qv (k,:,:)=QV_in(rev,:,:)
+     END DO
+
+     prsf(1,:,:) = 0.01*PSFC(:,:)             !! Lowest full sigma set to surface pressure
+
      DO k = 2, bottom_top_dim
-       prsf(:,:,k)=.5*(prs(:,:,k-1)+prs(:,:,k))
+       prsf(k,:,:)=.5*(prs(k-1,:,:)+prs(k,:,:))
      END DO
 
      
+     cape_out = 0.0
+     cin_out  = 0.0
      cape = 0.0
      cin  = 0.0
 
@@ -830,6 +851,7 @@ CONTAINS
          totqvp = 0.
          totprs = 0.
          DO k = 1,bottom_top_dim-1
+           print*,k,j,i,"prsf=",prsf(k,j,i),"p1=",p1,"p2=",p2
            IF ( prsf(k,j,i)   .le. p1 ) GOTO 35
            IF ( prsf(k+1,j,i) .ge. p2 ) GOTO 34
            pressure = prs(k,j,i)
@@ -1027,12 +1049,14 @@ CONTAINS
        ENDDO          !! END of BIG 2D/3D loop
 
 
-!       IF ( i3dflag == 0 ) THEN
+       IF ( i3dflag == 0 ) THEN
+         cape_out(itime,j,i) = cape(kpar1,j,i)
+         cin_out(itime,j,i)  = cin(kpar1,j,i)
 !         SCRa(i,j,1) = cape(kpar1,j,i)
 !         SCRa(i,j,2) = cin(kpar1,j,i)
 !         SCRa(i,j,3) = zrel(klcl)+ghtpari-HGT(j,i)   ! meters AGL (LCL)
 !         SCRa(i,j,4) = zrel(klfc)+ghtpari-HGT(j,i)   ! meters AGL (LFC)
-!       ENDIF
+       ENDIF
 
  
      END DO
@@ -1073,6 +1097,7 @@ CONTAINS
 !     If it is, assume parcel is so dry that the given theta-e value can
 !     be interpretted as theta, and get temperature from the simple dry
 !     theta formula.
+      include "psadilookup.inc"
       
  
       IF ( prs .le. psadiprs(150) ) THEN
