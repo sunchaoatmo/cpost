@@ -47,6 +47,8 @@ var_parameters = {
 "XSMLg"            : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"XSMLg":None}} , 
 "XSMTg"            : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"XSMTg":None}} , 
 "AT2M"             : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"AT2M":None}} , 
+"AODVIS"             : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"AODVIS":None}} , 
+"AODNIR"             : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"AODNIR":None}} , 
 "T2M"              : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"T2M":None}} , 
 "SST"              : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"SST":None}} , 
 "XTSS"             : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"XTSS":None}} , 
