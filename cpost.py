@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import numpy as np
+import sys
 from writenc import createnc
 from netCDF4 import Dataset
 from process import anal_daily,anal_sea_mon, wrftimetodate
@@ -110,7 +111,6 @@ else:
           del filenames[:lastindex]
           ncfile_last=Dataset(filenames[0],'r')
         except:
-          import sys
           sys.exit("STOP! There is a GAP between the record of the last day %s and earlieast wrfout we have in this folder"%(lastday))
       except:
         if os.path.isfile(rawfname):
@@ -128,7 +128,10 @@ else:
         simbeg_date=wrftimetodate(Dataset(filenames[shiftday],'r').variables['Times'][0])
         simbeg_num =date2num( simbeg_date,units=units_cur,calendar=calendar_cur)
         for iday,filename in enumerate(filenames[shiftday:]):
-          ncfile_cur=Dataset(filename,'r')
+          try:
+            ncfile_cur=Dataset(filename,'r')
+          except:
+            sys.exit("can not open:%s "%filename)
           curtime=ncfile_cur.variables['Times']
           date_curstep=wrftimetodate(curtime[0])
           if periods=="daily":
