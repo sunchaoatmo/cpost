@@ -530,6 +530,25 @@ CONTAINS
 
   END SUBROUTINE interp
 
+  SUBROUTINE calc_rh(rh,q2m,t2m,psfc, & 
+                     ny,nx)
+  implicit none
+  integer, intent(in)                    :: nx , ny
+  real,  dimension(ny,nx),intent(in)     :: t2m, q2m, psfc
+  real,  dimension(ny,nx),intent(out)    :: rh
+  real,  parameter                       :: T0 = 273.16
+  real,  parameter                       :: EPS = 0.622
+  integer                                :: i, j
+  real                                   :: tmp1,tmp2
+   
+    DO j = 1, nx
+      DO i = 1, ny
+        tmp1     = 10.*0.6112*exp(17.67*(t2m(i,j)-T0)/(t2m(i,j)-29.65))
+        tmp2     = EPS*tmp1/(0.01 * PSFC(i,j) -  (1.-EPS)*tmp1)
+        rh(i,j)  = 100.*AMAX1(AMIN1(q2m(i,j)/tmp2,1.0),0.0) 
+      ENDDO
+    ENDDO
+  END SUBROUTINE calc_rh
 
 
 

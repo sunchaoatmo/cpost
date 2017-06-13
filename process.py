@@ -98,11 +98,20 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,outputdim,z
         arwpost.calc_cape(cape_out=cape, cin_out=cin,itime=itime, 
                       hgt=hgt,  qv_in=qv,  pres_in=pres, tk_in=tk, geopt_in=geopt,psfc=psfc,
              bottom_top_dim=bottom_top       , south_north_dim=south_north     , west_east_dim=west_east,ntime=ntime)
+    elif taskname=="RH":
+      rh=np.zeros((ntime,south_north,west_east)) #,order='F',dtype=np.float32)
+      for itime in range(ntime):
+        q2m   =wrf_o.variables['Q2M'][itime,:,:]
+        t2m   =wrf_o.variables['T2M'][itime,:,:]
+        psfc  =wrf_o.variables['PSFC'][itime,:,:]
+        rh[itime,:,:]    =arwpost.calc_rh( q2m=q2m,t2m=t2m,psfc=psfc)
     for field in fields:
       if field=="CAPE":
         metfield=cape
       elif field=="CIN":
         metfield=cin
+      elif field=="RH":
+        metfield=rh
       else:
         metfield=wrf_o.variables[field]
       if outputdim==3:
