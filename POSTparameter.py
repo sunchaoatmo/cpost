@@ -166,8 +166,15 @@ var_parameters = {
                        "fields":{"height":{"units":"m","description":"Height"} }} , 
 "uv_met"    : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : "p"  ,"dim":4,
                        "fields":{
+                              "WIN":{"units":"m s-1","description":"Wind Speed at 10m"} ,
                               "u_met":{"units":"m s-1","description":"Rotated u-wind component"} ,
                               "v_met":{"units":"m s-1","description":"Rotated v-wind component"}}} ,
+
+"uv_10"    : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None  ,"dim":3,
+                       "fields":{
+                              "WIN_10":{"units":"m s-1","description":"Wind Speed at 10m"} ,
+                              "u_10":{"units":"m s-1","description":"Rotated u-wind component at 10m"} ,
+                              "v_10":{"units":"m s-1","description":"Rotated v-wind component at 10m"}}} ,
 } 
 #save seasonal data of following vars:
 

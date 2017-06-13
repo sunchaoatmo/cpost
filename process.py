@@ -9,13 +9,13 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,outputdim,z
   south_north =wrf_o.dimensions['south_north'].size
   west_east   =wrf_o.dimensions['west_east'].size
   bottom_top  =wrf_o.dimensions['bottom_top'].size
+  if "uv" in taskname:
+    cosalpha = wrf_i.variables['COSALPHA'][0]
+    sinalpha = wrf_i.variables['SINALPHA'][0]
   if vert_intp=="p":
     hgt  =wrf_i.variables['HGT'][0,:,:]
     if taskname=="geopt" or taskname=="height" or taskname=="temp" :
       phb  =wrf_i.variables['PHB'][0,:,:,:]
-    if taskname=="uv_met":
-      cosalpha = wrf_i.variables['COSALPHA'][0]
-      sinalpha = wrf_i.variables['SINALPHA'][0]
     tk   =None
     geopt=None
     qv   =None
@@ -76,6 +76,8 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,outputdim,z
       vr=outputdata["v_met"][:,:,:]
       ue = ur * cosalpha - vr * sinalpha
       ve = vr * cosalpha + ur * sinalpha
+      win= np.sqrt(ur*ur+vr*vr)
+      outputdata["WIN"][:,:,:]=win
       outputdata["u_met"][:,:,:]=ue
       outputdata["v_met"][:,:,:]=ve
   else:
@@ -112,6 +114,12 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,outputdim,z
         metfield=cin
       elif field=="RH":
         metfield=rh
+      elif field=="u_10":
+        metfield=wrf_o.variables["AU10"][:,:,:]
+      elif field=="v_10":
+        metfield=wrf_o.variables["AV10"][:,:,:]
+      elif field=="WIN_10":
+        continue 
       else:
         metfield=wrf_o.variables[field]
       if outputdim==3:
@@ -132,6 +140,16 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,outputdim,z
           outputdata[field][:,:,:]=np.min(metfield,axis=0)
       else:
         print("can only output to 3 or 4 dim")
+    if taskname=="uv_10":
+      ur=outputdata["u_10"][:,:]
+      vr=outputdata["v_10"][:,:]
+      ue = ur * cosalpha - vr * sinalpha
+      ve = vr * cosalpha + ur * sinalpha
+      win= np.sqrt(ur*ur+vr*vr)
+      outputdata["WIN_10"][:,:]=win
+      outputdata["u_10"][:,:]=ue
+      outputdata["v_10"][:,:]=ve
+
 
   return 
 
