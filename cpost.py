@@ -156,8 +156,12 @@ else:
           if periods=="daily":
             if compute_mode==6:
               if taskname=="PR":
-                outputdata["PRAVG"][:,:]=(ncfile_cur.variables['RAINC'][0,:,:]-ncfile_last.variables['RAINC'][0,:,:]
-                                   +ncfile_cur.variables['RAINNC'][0,:,:]-ncfile_last.variables['RAINNC'][0,:,:])
+                temp_1=ncfile_cur.variables['RAINC'][0,:,:] -ncfile_last.variables['RAINC'][0,:,:]
+                temp_2=ncfile_cur.variables['RAINNC'][0,:,:]-ncfile_last.variables['RAINNC'][0,:,:]
+                if np.all(temp_1>=0) and np.all(temp_1>=0):
+                  outputdata["PRAVG"][:,:]=temp_1+temp_2
+                else:
+                  outputdata["PRAVG"][:,:]=0.0
               else:
                 for field in var_parameters[taskname]["fields"]:
                   outputdata[field][:,:]=ncfile_cur.variables[taskname][0,:,:]-ncfile_last.variables[taskname][0,:,:]
