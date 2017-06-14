@@ -233,7 +233,7 @@ daily_allvars_2d =[ 'PR',     'RAINC',   'RAINNC',
                   'ALBEDO'  , 'TSK'       , 
                   'XQRCHRG' , 
                   'PSFC'    ,
-                      'SNOW',   'SNOWH',
+                      'SNOW',   'SNOWH', 'uv_10', 'RH',
                    'XZWT',    'XRBAS',   'XRDRN',  'XRSAT', ]
 daily_allvars_3d =[ 'CLDFRA',
                     'uv_met',  'height',
