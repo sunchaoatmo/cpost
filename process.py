@@ -200,10 +200,9 @@ def anal_sea_mon(periods,rawnc,monthList,fields,taskname,casename,shiftday,calen
     for i,year in  enumerate(Years):
       i_cur=i+lastindex
       for j,month in enumerate(monthList):
-        if 12 == month[0]:
+        byear=year
+        if periods=="seasonal" and 12 == month[0]:
           byear=year-1
-        else:
-          byear=year
         eyear=year
         bmonth=month[0]
         emonth=month[1]
