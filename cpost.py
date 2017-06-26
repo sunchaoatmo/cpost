@@ -21,6 +21,7 @@ def setmetadata(filename, rawdata):
   print(filename)
   ncfile_last=Dataset(filename,'r')
   var_units,var_description={},{}
+  nstep=0
   if rawdata:
     if taskname in ncfile_last.variables:
       var_units[taskname]  =ncfile_last.variables[taskname].units
@@ -50,7 +51,7 @@ def setmetadata(filename, rawdata):
     ny=ncfile_last.dimensions['lat'].size
     nx=ncfile_last.dimensions['lon'].size
     nlev =  number_of_zlevs if var_parameters[taskname]['vert_intp'] else nz 
-  return nx,ny,nz,nlev,var_units,var_description
+  return nx,ny,nz,nlev,var_units,var_description,nstep
 
 
 
@@ -122,7 +123,7 @@ else:
         filename=rawfname
         rawdata=False
 
-      nx,ny,nz,nlev,var_units,var_description=setmetadata(filename,rawdata)
+      nx,ny,nz,nlev,var_units,var_description,nstep=setmetadata(filename,rawdata)
 
 
       lastindex=0
