@@ -22,6 +22,7 @@ def setmetadata(filename, rawdata):
   ncfile_last=Dataset(filename,'r')
   var_units,var_description={},{}
   nstep=0
+  outputdim=3
   if rawdata:
     if taskname in ncfile_last.variables:
       var_units[taskname]  =ncfile_last.variables[taskname].units
