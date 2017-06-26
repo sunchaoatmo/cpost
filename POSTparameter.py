@@ -25,6 +25,10 @@ var_parameters = {
 "ATSK"             : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"ATSK":None}} , 
 "PRMIN"            : { "compute_mode" : 9  , "shiftday" : 1  , "vert_intp" : None ,"fields":{"PRMIN":None}} , 
 "PRMAX"            : { "compute_mode" : 8  , "shiftday" : 1  , "vert_intp" : None ,"fields":{"PRMAX":None}} , 
+"AT2M"             : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"dim":3,
+                           "fields":{"AT2M":{"units":"K","description":"temperatrue at 2 meter "},
+                                   "T2M975":{"units":"K","description":"temperatrue at 2 meter 975 percentile "}
+                             }},
 "PR"            : { "compute_mode" : 6  , "shiftday" : 1  , "vert_intp" : None ,"dim":3,
                            "fields":{"PRAVG":{"units":"mm/day","description":"Average daily Precip"},
                                        "PCT":{"units":"mm/day","description":"Precip 95 percentile"},
@@ -46,7 +50,7 @@ var_parameters = {
 "XSMIg"            : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"XSMIg":None}} , 
 "XSMLg"            : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"XSMLg":None}} , 
 "XSMTg"            : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"XSMTg":None}} , 
-"AT2M"             : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"AT2M":None}} , 
+#"AT2M"             : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"AT2M":None}} , 
 "AODVIS"             : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"AODVIS":None}} , 
 "AODNIR"             : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"AODNIR":None}} , 
 "T2M"              : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"T2M":None}} , 
@@ -56,8 +60,20 @@ var_parameters = {
 "AU2M"             : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"AU2M":None}} , 
 "AV2M"             : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"AV2M":None}} , 
 "AQ2M"             : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"AQ2M":None}} , 
-"T2MAX"            : { "compute_mode" : 8  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"T2MAX":None}} , 
-"T2MIN"            : { "compute_mode" : 9  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"T2MIN":None}} , 
+#"T2MAX"            : { "compute_mode" : 8  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"T2MAX":None}} , 
+"T2MAX"            : { "compute_mode" : 8  , "shiftday" : 0  , "vert_intp" : None ,"dim":3,
+                       "fields":{"T2MAX":{"units":"K","description":"maxium temperatrue at 2 meter "},
+                                }
+                     },
+"T2MIN"            : { "compute_mode" : 9  , "shiftday" : 0  , "vert_intp" : None ,"dim":3,
+                       "fields":{"T2MIN":{"units":"K","description":"minium temperatrue at 2 meter "},
+                                }
+                     },
+"WIN"            : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"dim":3,
+                       "fields":{"WIN_10":{"units":"m/s","description":" Wind Speed at 10m"},
+                                }
+                     },
+#"T2MIN"            : { "compute_mode" : 9  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"T2MIN":None}} , 
 "RAINC"            : { "compute_mode" : 6  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"RAINC":None}} , 
 "RAINNC"           : { "compute_mode" : 6  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"RAINNC":None}} , 
 "CDD"              : { "compute_mode" : 12 , "shiftday" : 0  , "vert_intp" : None ,"fields":{"CDD":None}} , 
@@ -169,7 +185,6 @@ var_parameters = {
                               "WIN":{"units":"m s-1","description":"Wind Speed at 10m"} ,
                               "u_met":{"units":"m s-1","description":"Rotated u-wind component"} ,
                               "v_met":{"units":"m s-1","description":"Rotated v-wind component"}}} ,
-
 "uv_10"    : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None  ,"dim":3,
                        "fields":{
                               "WIN_10":{"units":"m s-1","description":"Wind Speed at 10m"} ,

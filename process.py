@@ -170,29 +170,30 @@ def anal_sea_mon(periods,rawnc,monthList,fields,taskname,casename,shiftday,calen
   end_ymd  =num2date(nctime[-1],units=time_units,calendar=calendar_cur)
   beg_num =date2num( datetime(start_ymd.year,12,1),units=time_units,calendar=calendar_cur)
   end_num =date2num( datetime(  end_ymd.year,11,30),units=time_units,calendar=calendar_cur)
+  print(calendar_cur)
 
-  if beg_num+shiftday>=nctime[0] and end_num<=nctime[-1] and start_ymd.year<end_ymd.year: 
+  #if beg_num+shiftday>=nctime[0] and end_num<=nctime[-1] and start_ymd.year<end_ymd.year: 
+  diagfname="%s_%s_%s.nc"%(casename,taskname,periods)
+  diagexist=os.path.isfile(diagfname) 
+  if diagexist:
     diagfname="%s_%s_%s.nc"%(casename,taskname,periods)
-    diagexist=os.path.isfile(diagfname) 
-    if diagexist:
-      diagfname="%s_%s_%s.nc"%(casename,taskname,periods)
-      diagnc=Dataset(diagfname,'a')
-      nctime_diag=diagnc.variables["time"]
-      lastindex=len(nctime_diag)
-      if nctime_diag[-1]<end_ymd.year:
-        print("do %s mean diagnostic analysis"%periods)
-        dodiag=True
-        diag_startyear=nctime_diag[-1]+1
-        diag_endyear=end_ymd.year
-    else:
-      lastindex=0
+    diagnc=Dataset(diagfname,'a')
+    nctime_diag=diagnc.variables["time"]
+    lastindex=len(nctime_diag)
+    if nctime_diag[-1]<end_ymd.year:
+      print("do %s mean diagnostic analysis"%periods)
       dodiag=True
-      diag_startyear=start_ymd.year+1
+      diag_startyear=nctime_diag[-1]+1
       diag_endyear=end_ymd.year
-      diagnc=createsmnc(casename,taskname,periods,fields,nx,ny,nz)
-      for field in fields:
-        diagnc.variables[field].units=units[field]
-        diagnc.variables[field].description=description[field]
+  else:
+    lastindex=0
+    dodiag=True
+    diag_startyear=start_ymd.year+1
+    diag_endyear=end_ymd.year
+    diagnc=createsmnc(casename,taskname,periods,fields,nx,ny,nz)
+    for field in fields:
+      diagnc.variables[field].units=units[field]
+      diagnc.variables[field].description=description[field]
 
   if dodiag:
     Years=range(diag_startyear,diag_endyear+1)
@@ -233,6 +234,9 @@ def anal_sea_mon(periods,rawnc,monthList,fields,taskname,casename,shiftday,calen
           diagnc.variables["PCT"][i_cur,j,:,:]=cs_stat.quantile_cal(pre_quantile=data_daily_ma,dry_lim=dry_lim,qvalue=qvalue)
           diagnc.variables["CDD"][i_cur,j,:,:]=cs_stat.consective_dry(fields=data_daily_ma,dry_lim=dry_lim)
           diagnc.variables["PRAVG"][i_cur,j,:,:]=np.mean(data_daily_ma,axis=0)
+        elif taskname=="AT2M":
+          data_daily_ma=ma.masked_values(rawnc.variables["AT2M"][int(dayb):int(daye),:,:],1.e+20)
+          diagnc.variables["T2M975"][i_cur,j,:,:]=cs_stat.quantile_cal(pre_quantile=data_daily_ma,dry_lim=-999,qvalue=0.975)
         else:
           for field in fields:
             data_daily_ma=ma.masked_values(rawnc.variables[field][int(dayb):int(daye),:,:],1.e+20)

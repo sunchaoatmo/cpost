@@ -17,6 +17,43 @@ from subprocess import check_output,call
 # This code assumes each wrfout file contains one full day of output 
 # and that all data is consecutive (no gaps)
 
+def setmetadata(filename, rawdata):
+  print(filename)
+  ncfile_last=Dataset(filename,'r')
+  var_units,var_description={},{}
+  if rawdata:
+    if taskname in ncfile_last.variables:
+      var_units[taskname]  =ncfile_last.variables[taskname].units
+      var_description[taskname]  =ncfile_last.variables[taskname].description
+      varshape =ncfile_last.variables[taskname].shape
+      nz       =varshape[1]
+      outputdim=len(varshape)
+    else:
+      outputdim=var_parameters[taskname]['dim']
+      for field in var_parameters[taskname]["fields"]:
+        var_units[field]=var_parameters[taskname]["fields"][field]['units']
+        var_description[field]=var_parameters[taskname]["fields"][field]['description']
+      nz=ncfile_last.dimensions['bottom_top'].size
+      nstep=ncfile_last.dimensions['Time'].size
+      ny=ncfile_last.dimensions['south_north'].size
+      nx=ncfile_last.dimensions['west_east'].size
+    if outputdim==3:
+      nlev=1
+    elif outputdim==4:
+      nlev =  number_of_zlevs if var_parameters[taskname]['vert_intp'] else nz 
+  else:
+    for field in var_parameters[taskname]["fields"]:
+      var_units[field]=var_parameters[taskname]["fields"][field]['units']
+      var_description[field]=var_parameters[taskname]["fields"][field]['description']
+    nz=1
+    nstep=ncfile_last.dimensions['time'].size
+    ny=ncfile_last.dimensions['lat'].size
+    nx=ncfile_last.dimensions['lon'].size
+    nlev =  number_of_zlevs if var_parameters[taskname]['vert_intp'] else nz 
+  return nx,ny,nz,nlev,var_units,var_description
+
+
+
 MATCHINE=check_output("uname -a" , shell=True)
 calendar_cur=args.calendar
 periods=args.p
@@ -78,108 +115,100 @@ else:
       shiftday=var_parameters[taskname]['shiftday'] if periods=="daily"  else 0
       compute_mode=var_parameters[taskname]['compute_mode'] 
       rawfname="%s_%s_%s.nc"%(casename,taskname,periods)
-      ncfile_last=Dataset(filenames[0],'r')
-      var_units,var_description={},{}
-      if taskname in ncfile_last.variables:
-        var_units[taskname]  =ncfile_last.variables[taskname].units
-        var_description[taskname]  =ncfile_last.variables[taskname].description
-        varshape =ncfile_last.variables[taskname].shape
-        nz       =varshape[1]
-        outputdim=len(varshape)
+      if filenames:
+        filename= filenames[0]
+        rawdata = True
       else:
-        outputdim=var_parameters[taskname]['dim']
-        for field in var_parameters[taskname]["fields"]:
-          var_units[field]=var_parameters[taskname]["fields"][field]['units']
-          var_description[field]=var_parameters[taskname]["fields"][field]['description']
-        nz=ncfile_last.dimensions['bottom_top'].size
-      nstep=ncfile_last.dimensions['Time'].size
-      ny=ncfile_last.dimensions['south_north'].size
-      nx=ncfile_last.dimensions['west_east'].size
-      if outputdim==3:
-        nlev=1
-      elif outputdim==4:
-        nlev =  number_of_zlevs if var_parameters[taskname]['vert_intp'] else nz 
+        filename=rawfname
+        rawdata=False
+
+      nx,ny,nz,nlev,var_units,var_description=setmetadata(filename,rawdata)
+
+
       lastindex=0
 
 
-      try:
-        rawnc=Dataset(rawfname,'a')
-        lastday=num2date(rawnc.variables["time"][-1],units=units_cur,calendar=calendar_cur)
-        lastwrfout="wrfout_d01_%s"%lastday.strftime(wrfout_data_fmt)
+      if rawdata:
         try:
-          lastindex=filenames.index(lastwrfout)
-          del filenames[:lastindex]
-          ncfile_last=Dataset(filenames[0],'r')
-        except:
-          sys.exit("STOP! There is a GAP between the record of the last day %s and earlieast wrfout we have in this folder"%(lastday))
-      except:
-        if os.path.isfile(rawfname):
-          os.remove(rawfname)
-        rawnc=createnc(casename,taskname,periods,units_cur,calendar_cur,var_parameters[taskname]["fields"].keys(),nx,ny,nlev  )
-        for field in var_parameters[taskname]["fields"]:
-          rawnc.variables[field].units=var_units[field]
-          rawnc.variables[field].description=var_description[field]
-      if len(filenames)>shiftday:
-        nt=len(filenames)-shiftday if periods=="daily" else nstep*len(filenames)-shiftday
-        outputtime=np.empty([1])
-        outputdata={}
-        for field in var_parameters[taskname]["fields"]:
-          outputdata[field]=np.empty([nlev,ny,nx])
-        simbeg_date=wrftimetodate(Dataset(filenames[shiftday],'r').variables['Times'][0])
-        simbeg_num =date2num( simbeg_date,units=units_cur,calendar=calendar_cur)
-        for iday,filename in enumerate(filenames[shiftday:]):
+          rawnc=Dataset(rawfname,'a')
+          lastday=num2date(rawnc.variables["time"][-1],units=units_cur,calendar=calendar_cur)
+          lastwrfout="wrfout_d01_%s"%lastday.strftime(wrfout_data_fmt)
           try:
-            ncfile_cur=Dataset(filename,'r')
+            lastindex=filenames.index(lastwrfout)
+            del filenames[:lastindex]
+            ncfile_last=Dataset(filenames[0],'r')
           except:
-            sys.exit("can not open:%s "%filename)
-          curtime=ncfile_cur.variables['Times']
-          date_curstep=wrftimetodate(curtime[0])
-          if periods=="daily":
-            outputtime[0]=date2num( wrftimetodate(curtime[0]),units=units_cur,calendar=calendar_cur)
-          else:
-            for istep in range(nstep):
-              outputtime[iday*nstep+istep]=date2num( wrftimetodate(curtime[istep]),units=units_cur,calendar=calendar_cur)
-
-# check of the intergrty of data
-          if not len(curtime)==nstep:
-            if filename == filenames[-1]:     # it is OK sometimes the last wrfout can be incomplete, the simulation can restart from it later on
-              break
-            else:
-              import sys
-              sys.exit("STOP! one wrfout is incomplete %s "%(filename))
-
-          if not outputtime[0]==iday+simbeg_num:
-            import sys
-            sys.exit("STOP! %s is missing in wrfout serial "%(filename))
-# check of the intergrty of data
-
-          if periods=="daily":
-            if compute_mode==6:
-              if taskname=="PR":
-                temp_1=ncfile_cur.variables['RAINC'][0,:,:] -ncfile_last.variables['RAINC'][0,:,:]
-                temp_2=ncfile_cur.variables['RAINNC'][0,:,:]-ncfile_last.variables['RAINNC'][0,:,:]
-                if np.all(temp_1>=0) and np.all(temp_1>=0):
-                  outputdata["PRAVG"][:,:]=temp_1+temp_2
-                else:
-                  outputdata["PRAVG"][:,:]=0.0
-              else:
-                for field in var_parameters[taskname]["fields"]:
-                  outputdata[field][:,:]=ncfile_cur.variables[taskname][0,:,:]-ncfile_last.variables[taskname][0,:,:]
-            else:
-              anal_daily(iday,outputdata,ncfile_cur,wrfinputnc,taskname,
-                        var_parameters[taskname]["fields"],var_parameters[taskname]["vert_intp"],outputdim,z_levs,number_of_zlevs,compute_mode)
-          else:
-            for field in var_parameters[taskname]["fields"]:
-              outputdata[field][iday*nstep:(iday+1)*nstep,:,:]=ncfile_cur.variables[taskname][:,:,:]
-          ncfile_last=ncfile_cur
+            sys.exit("STOP! There is a GAP between the record of the last day %s and earlieast wrfout we have in this folder"%(lastday))
+        except:
+          if os.path.isfile(rawfname):
+            os.remove(rawfname)
+          rawnc=createnc(casename,taskname,periods,units_cur,calendar_cur,var_parameters[taskname]["fields"].keys(),nx,ny,nlev  )
           for field in var_parameters[taskname]["fields"]:
-            if outputdim==3:
-              rawnc.variables[field][lastindex+iday,:,:]=outputdata[field]
-            elif outputdim==4:
-              rawnc.variables[field][lastindex+iday,:,:,:]=outputdata[field]
-          rawnc.variables["time"][lastindex+iday]=outputtime[0]
-          rawnc.sync()
-          print(date_curstep)
+            rawnc.variables[field].units=var_units[field]
+            rawnc.variables[field].description=var_description[field]
+        if len(filenames)>shiftday:
+          nt=len(filenames)-shiftday if periods=="daily" else nstep*len(filenames)-shiftday
+          outputtime=np.empty([1])
+          outputdata={}
+          for field in var_parameters[taskname]["fields"]:
+            outputdata[field]=np.empty([nlev,ny,nx])
+          simbeg_date=wrftimetodate(Dataset(filenames[shiftday],'r').variables['Times'][0])
+          simbeg_num =date2num( simbeg_date,units=units_cur,calendar=calendar_cur)
+          for iday,filename in enumerate(filenames[shiftday:]):
+            try:
+              ncfile_cur=Dataset(filename,'r')
+            except:
+              sys.exit("can not open:%s "%filename)
+            curtime=ncfile_cur.variables['Times']
+            date_curstep=wrftimetodate(curtime[0])
+            if periods=="daily":
+              outputtime[0]=date2num( wrftimetodate(curtime[0]),units=units_cur,calendar=calendar_cur)
+            else:
+              for istep in range(nstep):
+                outputtime[iday*nstep+istep]=date2num( wrftimetodate(curtime[istep]),units=units_cur,calendar=calendar_cur)
+
+# check of the intergrty of data
+            if not len(curtime)==nstep:
+              if filename == filenames[-1]:     # it is OK sometimes the last wrfout can be incomplete, the simulation can restart from it later on
+                break
+              else:
+                import sys
+                sys.exit("STOP! one wrfout is incomplete %s "%(filename))
+
+            if not outputtime[0]==iday+simbeg_num:
+              import sys
+              sys.exit("STOP! %s is missing in wrfout serial "%(filename))
+# check of the intergrty of data
+
+            if periods=="daily":
+              if compute_mode==6:
+                if taskname=="PR":
+                  temp_1=ncfile_cur.variables['RAINC'][0,:,:] -ncfile_last.variables['RAINC'][0,:,:]
+                  temp_2=ncfile_cur.variables['RAINNC'][0,:,:]-ncfile_last.variables['RAINNC'][0,:,:]
+                  if np.all(temp_1>=0) and np.all(temp_1>=0):
+                    outputdata["PRAVG"][:,:]=temp_1+temp_2
+                  else:
+                    outputdata["PRAVG"][:,:]=0.0
+                else:
+                  for field in var_parameters[taskname]["fields"]:
+                    outputdata[field][:,:]=ncfile_cur.variables[taskname][0,:,:]-ncfile_last.variables[taskname][0,:,:]
+              else:
+                anal_daily(iday,outputdata,ncfile_cur,wrfinputnc,taskname,
+                          var_parameters[taskname]["fields"],var_parameters[taskname]["vert_intp"],outputdim,z_levs,number_of_zlevs,compute_mode)
+            else:
+              for field in var_parameters[taskname]["fields"]:
+                outputdata[field][iday*nstep:(iday+1)*nstep,:,:]=ncfile_cur.variables[taskname][:,:,:]
+            ncfile_last=ncfile_cur
+            for field in var_parameters[taskname]["fields"]:
+              if outputdim==3:
+                rawnc.variables[field][lastindex+iday,:,:]=outputdata[field]
+              elif outputdim==4:
+                rawnc.variables[field][lastindex+iday,:,:,:]=outputdata[field]
+            rawnc.variables["time"][lastindex+iday]=outputtime[0]
+            rawnc.sync()
+            print(date_curstep)
+      else:
+        rawnc=Dataset(filename,'r')
 
 ########################DIAG PART#################################
       if periods=="daily":
@@ -187,6 +216,7 @@ else:
                           taskname,casename,shiftday,calendar_cur,units_cur,var_units,var_description,ny,nx,nlev,r95tnc)
         anal_sea_mon("monthly",rawnc,monthlyList,var_parameters[taskname]["fields"].keys(),
                           taskname,casename,shiftday,calendar_cur,units_cur,var_units,var_description,ny,nx,nlev,r95tnc)
-      rawnc.history = 'Post-processed Chao Sun sunchao@umd.edu ' + time.ctime(time.time())
-      rawnc.source ='CWRF'
+      if rawdata:
+        rawnc.history = 'Post-processed Chao Sun sunchao@umd.edu ' + time.ctime(time.time())
+        rawnc.source ='CWRF'
       rawnc.close() #flush out rawnc
