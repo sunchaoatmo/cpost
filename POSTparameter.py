@@ -27,7 +27,7 @@ var_parameters = {
 "PRMAX"            : { "compute_mode" : 8  , "shiftday" : 1  , "vert_intp" : None ,"fields":{"PRMAX":None}} , 
 "AT2M"             : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"dim":3,
                            "fields":{"AT2M":{"units":"K","description":"temperatrue at 2 meter "},
-                                   "T2M975":{"units":"K","description":"temperatrue at 2 meter 975 percentile "}
+                                   #"T2M975":{"units":"K","description":"temperatrue at 2 meter 975 percentile "}
                              }},
 "PR"            : { "compute_mode" : 6  , "shiftday" : 1  , "vert_intp" : None ,"dim":3,
                            "fields":{"PRAVG":{"units":"mm/day","description":"Average daily Precip"},
