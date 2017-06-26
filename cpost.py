@@ -36,9 +36,9 @@ def setmetadata(filename, rawdata):
         var_units[field]=var_parameters[taskname]["fields"][field]['units']
         var_description[field]=var_parameters[taskname]["fields"][field]['description']
       nz=ncfile_last.dimensions['bottom_top'].size
-      nstep=ncfile_last.dimensions['Time'].size
-      ny=ncfile_last.dimensions['south_north'].size
-      nx=ncfile_last.dimensions['west_east'].size
+    nstep=ncfile_last.dimensions['Time'].size
+    ny=ncfile_last.dimensions['south_north'].size
+    nx=ncfile_last.dimensions['west_east'].size
     if outputdim==3:
       nlev=1
     elif outputdim==4:
