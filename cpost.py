@@ -51,7 +51,7 @@ def setmetadata(filename, rawdata):
     ny=ncfile_last.dimensions['lat'].size
     nx=ncfile_last.dimensions['lon'].size
     nlev =  number_of_zlevs if var_parameters[taskname]['vert_intp'] else nz 
-  return nx,ny,nz,nlev,var_units,var_description,nstep
+  return nx,ny,nz,nlev,var_units,var_description,nstep,outputdim
 
 
 
@@ -123,7 +123,7 @@ else:
         filename=rawfname
         rawdata=False
 
-      nx,ny,nz,nlev,var_units,var_description,nstep=setmetadata(filename,rawdata)
+      nx,ny,nz,nlev,var_units,var_description,nstep,outputdim=setmetadata(filename,rawdata)
 
 
       lastindex=0
