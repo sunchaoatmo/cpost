@@ -234,9 +234,6 @@ def anal_sea_mon(periods,rawnc,monthList,fields,taskname,casename,shiftday,calen
           diagnc.variables["PCT"][i_cur,j,:,:]=cs_stat.quantile_cal(pre_quantile=data_daily_ma,dry_lim=dry_lim,qvalue=qvalue)
           diagnc.variables["CDD"][i_cur,j,:,:]=cs_stat.consective_dry(fields=data_daily_ma,dry_lim=dry_lim)
           diagnc.variables["PRAVG"][i_cur,j,:,:]=np.mean(data_daily_ma,axis=0)
-        elif taskname=="AT2M":
-          data_daily_ma=ma.masked_values(rawnc.variables["AT2M"][int(dayb):int(daye),:,:],1.e+20)
-          diagnc.variables["T2M975"][i_cur,j,:,:]=cs_stat.quantile_cal(pre_quantile=data_daily_ma,dry_lim=-999,qvalue=0.975)
         else:
           for field in fields:
             data_daily_ma=ma.masked_values(rawnc.variables[field][int(dayb):int(daye),:,:],1.e+20)

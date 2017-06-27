@@ -49,8 +49,13 @@ def setmetadata(filename, rawdata):
       var_description[field]=var_parameters[taskname]["fields"][field]['description']
     nz=1
     nstep=ncfile_last.dimensions['time'].size
-    ny=ncfile_last.dimensions['lat'].size
-    nx=ncfile_last.dimensions['lon'].size
+    try:
+      ny=ncfile_last.dimensions['lat'].size
+      nx=ncfile_last.dimensions['lon'].size
+    except:
+      ny=ncfile_last.dimensions['south_north'].size
+      nx=ncfile_last.dimensions['west_east'].size
+
     nlev =  number_of_zlevs if var_parameters[taskname]['vert_intp'] else nz 
   return nx,ny,nz,nlev,var_units,var_description,nstep,outputdim
 
