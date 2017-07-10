@@ -18,7 +18,6 @@ from subprocess import check_output,call
 # and that all data is consecutive (no gaps)
 
 def setmetadata(filename, rawdata):
-  print(filename)
   ncfile_last=Dataset(filename,'r')
   var_units,var_description={},{}
   nx,ny,nstep=0,0,0
@@ -57,7 +56,7 @@ def setmetadata(filename, rawdata):
       nx=ncfile_last.dimensions['west_east'].size
 
     nlev =  number_of_zlevs if var_parameters[taskname]['vert_intp'] else nz 
-  return nx,ny,nz,nlev,var_units,var_description,nstep,outputdim
+  return nx,ny,nz,nlev,var_units,var_description,nstep,outputdim,ncfile_last
 
 
 
@@ -129,7 +128,7 @@ else:
         filename=rawfname
         rawdata=False
 
-      nx,ny,nz,nlev,var_units,var_description,nstep,outputdim=setmetadata(filename,rawdata)
+      nx,ny,nz,nlev,var_units,var_description,nstep,outputdim,ncfile_last=setmetadata(filename,rawdata)
 
 
       lastindex=0
