@@ -25,6 +25,7 @@ var_parameters = {
 "ATSK"             : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"ATSK":None}} , 
 "PRMIN"            : { "compute_mode" : 9  , "shiftday" : 1  , "vert_intp" : None ,"fields":{"PRMIN":None}} , 
 "PRMAX"            : { "compute_mode" : 8  , "shiftday" : 1  , "vert_intp" : None ,"fields":{"PRMAX":None}} , 
+"PRAVG"            : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"PRAVG":None}} , 
 "AT2M"             : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"dim":3,
                            "fields":{"AT2M":{"units":"K","description":"temperatrue at 2 meter "},
                                    #"T2M975":{"units":"K","description":"temperatrue at 2 meter 975 percentile "}

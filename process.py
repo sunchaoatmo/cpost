@@ -53,14 +53,7 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,outputdim,z
           metfield=wrf_o.variables["V"][itime,:,:,:]
           (ntime,nz,ny,nx)=wrf_o.variables["V"].shape
 
-        """
-        elif taskname=="td":
-        elif taskname=="cldfr":
-        elif taskname=="dbz":
-        """
-#       outputdata[field][iday,:,:,:]+= arwpost.interp(
         outputdata[field][:,:,:]+= arwpost.interp(
-#             data_out=temp,
              cname=field                     , vertical_type=vert_intp         , 
              data_in=metfield                , 
              z_data=pres                     , 
@@ -259,3 +252,136 @@ def wrftimetodate(wrfstr):
   Second=int(''.join(list(wrfstr[SECOND])))
   wrfdate=datetime(Year, Month, Day, Hour, Minute, Second)
   return wrfdate
+
+def anal_hourly(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,outputdim,z_levs,number_of_zlevs,compute_mode):
+  from constant import RCP,p0
+  from ARWpost import arwpost
+  import time
+  pb   =wrf_i.variables['PB'][0,:,:,:]
+  ntime       =wrf_o.dimensions['Time'].size
+  south_north =wrf_o.dimensions['south_north'].size
+  west_east   =wrf_o.dimensions['west_east'].size
+  bottom_top  =wrf_o.dimensions['bottom_top'].size
+  if "uv" in taskname:
+    cosalpha = wrf_i.variables['COSALPHA'][0]
+    sinalpha = wrf_i.variables['SINALPHA'][0]
+  if vert_intp=="p":
+    hgt  =wrf_i.variables['HGT'][0,:,:]
+    if taskname=="geopt" or taskname=="height" or taskname=="temp" :
+      phb  =wrf_i.variables['PHB'][0,:,:,:]
+    tk   =None
+    geopt=None
+    qv   =None
+    psfc =None
+    nz,ny,nx=bottom_top,south_north, west_east
+    for itime in range(ntime):
+      p    =wrf_o.variables['P'][itime,:,:,:]
+      pres =p+pb
+      if taskname=="geopt" or taskname=="height" or taskname=="temp" :
+        ph   =wrf_o.variables['PH'][itime,:,:,:]
+        psfc =wrf_o.variables['PSFC'][itime,:,:]
+        qv   =wrf_o.variables['QVAPOR'][itime,:,:,:]
+        geopt_w=ph+phb
+        geopt=(geopt_w[1:,:,:]+geopt_w[:-1,:,:])/2.0
+        t  =wrf_o.variables['T'][itime,:,:,:]
+        tk = (t+300.) * ( pres / p0 )**RCP
+        theta = (t+300.)
+
+      for field in fields:
+        if field in wrf_o.variables:
+          metfield=wrf_o.variables[field][itime,:,:,:]
+          (ntime,nz,ny,nx)=wrf_o.variables[field].shape
+        elif field=="tk":
+          metfield=tk
+        elif field=="theta":
+          metfield=theta
+        elif field=="geopt" :
+          metfield=geopt
+        elif field=="height":
+          metfield=geopt/9.8
+        elif field=="u_met":
+          metfield=wrf_o.variables["U"][itime,:,:,:]
+          (ntime,nz,ny,nx)=wrf_o.variables["U"].shape
+        elif field=="v_met":
+          metfield=wrf_o.variables["V"][itime,:,:,:]
+          (ntime,nz,ny,nx)=wrf_o.variables["V"].shape
+
+        outputdata[field][itime,:,:,:]= arwpost.interp(
+             cname=field                     , vertical_type=vert_intp         , 
+             data_in=metfield                , 
+             z_data=pres                     , 
+             number_of_zlevs=number_of_zlevs , z_levs=z_levs                   , 
+             psfc=psfc                       , hgt=hgt                         , pres=pres                    , 
+             geopt=geopt                     , tk=tk                           , qv=qv                        , 
+             nx =nx                          , ny =ny                          , nz=nz                        , 
+             bottom_top_dim=bottom_top       , south_north_dim=south_north     , west_east_dim=west_east)
+    if taskname=="uv_met":
+      ur=outputdata["u_met"][:]
+      vr=outputdata["v_met"][:]
+      ue = ur * cosalpha - vr * sinalpha
+      ve = vr * cosalpha + ur * sinalpha
+      win= np.sqrt(ur*ur+vr*vr)
+      outputdata["WIN"][:]=win
+      outputdata["u_met"][:]=ue
+      outputdata["v_met"][:]=ve
+  else:
+    if taskname=="conv":
+      cape=np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
+      cin =np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
+      hgt  =wrf_i.variables['HGT'][0,:,:]
+      phb  =wrf_i.variables['PHB'][0,:,:,:]
+      for itime in range(ntime):
+        p    =wrf_o.variables['P'][itime,:,:,:]
+        pres =p+pb
+        qv   =wrf_o.variables['QVAPOR'][itime,:,:,:]
+        t  =wrf_o.variables['T'][itime,:,:,:]
+        tc =-273.15+(t+300.) * ( pres / p0 )**RCP
+        tk = (t+300.) * ( pres / p0 )**RCP
+        ph   =wrf_o.variables['PH'][itime,:,:,:]
+        geopt_w=ph+phb
+        psfc =wrf_o.variables['PSFC'][itime,:,:]
+        geopt=(geopt_w[1:,:,:]+geopt_w[:-1,:,:])/2.0
+        arwpost.calc_cape(cape_out=cape, cin_out=cin,itime=itime, 
+                      hgt=hgt,  qv_in=qv,  pres_in=pres, tk_in=tk, geopt_in=geopt,psfc=psfc,
+             bottom_top_dim=bottom_top       , south_north_dim=south_north     , west_east_dim=west_east,ntime=ntime)
+    elif taskname=="RH":
+      rh=np.zeros((ntime,south_north,west_east)) #,order='F',dtype=np.float32)
+      for itime in range(ntime):
+        q2m   =wrf_o.variables['Q2M'][itime,:,:]
+        t2m   =wrf_o.variables['T2M'][itime,:,:]
+        psfc  =wrf_o.variables['PSFC'][itime,:,:]
+        rh[itime,:,:]    =arwpost.calc_rh( q2m=q2m,t2m=t2m,psfc=psfc)
+    for field in fields:
+      if field=="CAPE":
+        metfield=cape
+      elif field=="CIN":
+        metfield=cin
+      elif field=="RH":
+        metfield=rh
+      elif field=="u_10":
+        metfield=wrf_o.variables["AU10"][:,:,:]
+      elif field=="v_10":
+        metfield=wrf_o.variables["AV10"][:,:,:]
+      elif field=="WIN_10":
+        continue 
+      else:
+        metfield=wrf_o.variables[field]
+      if outputdim==3:
+        outputdata[field][:,:,:]=metfield[:,:,:]
+      elif  outputdim==4:
+        outputdata[field][:,:,:,:]=metfield[:,:,:,:]
+      else:
+        print("can only output to 3 or 4 dim")
+    if taskname=="uv_10":
+      ur=outputdata["u_10"][:,:,:]
+      vr=outputdata["v_10"][:,:,:]
+      ue = ur * cosalpha - vr * sinalpha
+      ve = vr * cosalpha + ur * sinalpha
+      win= np.sqrt(ur*ur+vr*vr)
+      outputdata["WIN_10"][:,:,:]=win
+      outputdata["u_10"][:,:,:]=ue
+      outputdata["v_10"][:,:,:]=ve
+
+  return 
+
+
