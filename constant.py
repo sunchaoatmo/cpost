@@ -14,4 +14,4 @@ Cv = Cp-Rd
 CPMD = 0.887
 RCP = Rd/Cp
 p0 = 100000.
-
+EPS = 0.622

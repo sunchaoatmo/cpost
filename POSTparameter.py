@@ -165,6 +165,11 @@ var_parameters = {
 "TSK"              : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"TSK":None}} , 
 "TSLB"             : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"TSLB":None}} , 
 "SMOIS"            : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"SMOIS":None}} , 
+"omega"            : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : 'p'  ,"dim":4,
+                       "fields":{
+                                "omega":{"units":"Pa s-1","description":"omega"} 
+                                }
+                     }, 
 "RH"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None  ,"dim":3,
                        "fields":{
                                 "RH":{"units":"%","description":"Relative Humidity at 2m"} 

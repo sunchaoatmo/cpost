@@ -1,7 +1,7 @@
 import numpy as np
 
 def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,outputdim,z_levs,number_of_zlevs,compute_mode):
-  from constant import RCP,p0
+  from constant import RCP,p0,G,Rd,EPS
   from ARWpost import arwpost
   import time
   pb   =wrf_i.variables['PB'][0,:,:,:]
@@ -14,7 +14,7 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,outputdim,z
     sinalpha = wrf_i.variables['SINALPHA'][0]
   if vert_intp=="p":
     hgt  =wrf_i.variables['HGT'][0,:,:]
-    if taskname=="geopt" or taskname=="height" or taskname=="temp" :
+    if taskname=="geopt" or taskname=="height" or taskname=="temp" or taskname=="omega":
       phb  =wrf_i.variables['PHB'][0,:,:,:]
     tk   =None
     geopt=None
@@ -24,7 +24,7 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,outputdim,z
     for itime in range(ntime):
       p    =wrf_o.variables['P'][itime,:,:,:]
       pres =p+pb
-      if taskname=="geopt" or taskname=="height" or taskname=="temp" :
+      if taskname=="geopt" or taskname=="height" or taskname=="temp" or taskname=="omega":
         ph   =wrf_o.variables['PH'][itime,:,:,:]
         psfc =wrf_o.variables['PSFC'][itime,:,:]
         qv   =wrf_o.variables['QVAPOR'][itime,:,:,:]
@@ -33,6 +33,11 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,outputdim,z
         t  =wrf_o.variables['T'][itime,:,:,:]
         tk = (t+300.) * ( pres / p0 )**RCP
         theta = (t+300.)
+
+      if taskname=="omega":
+        w  =wrf_o.variables['W'][itime,:,:,:]
+        www= .5*(w[1:,:,:] + w[:-1,:,:])
+        omega = -G*pres/ (Rd*((tk*(EPS + qv))/ (EPS*(1. + qv))))*www
 
       for field in fields:
         if field in wrf_o.variables:
@@ -52,6 +57,8 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,outputdim,z
         elif field=="v_met":
           metfield=wrf_o.variables["V"][itime,:,:,:]
           (ntime,nz,ny,nx)=wrf_o.variables["V"].shape
+        elif field=="omega":
+          metfield=omega
 
         outputdata[field][:,:,:]+= arwpost.interp(
              cname=field                     , vertical_type=vert_intp         , 
