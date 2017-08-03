@@ -2,7 +2,7 @@
 from netCDF4 import Dataset
 from process import anal_sea_mon #, wrftimetodate
 from datetime import datetime,timedelta
-from POSTparameter import daily_allvars_2d,daily_allvars_3d,var_parameters
+from POSTparameter import hourly_allvars,daily_allvars_2d,daily_allvars_3d,var_parameters
 from argument import args,wrfinputnc,r95tnc
 from constant import prefix,seasonList,monthlyList
 import glob
@@ -59,6 +59,8 @@ MATCHINE=check_output("uname -a" , shell=True)
 calendar_cur=args.calendar
 periods=args.p
 casename=args.n
+if args.p=="hourly":
+  tasknames=hourly_allvars
 if args.v:
   tasknames=args.v
 elif args.dim=='2':

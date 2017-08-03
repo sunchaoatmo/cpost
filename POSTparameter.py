@@ -256,20 +256,13 @@ daily_allvars_2d =[ 'PR',     'RAINC',   'RAINNC',
                   'PSFC'    ,
                       'SNOW',   'SNOWH', 'uv_10', 'RH',
                    'XZWT',    'XRBAS',   'XRDRN',  'XRSAT', ]
+
+daily_allvars_3d =[ 'temp'     ,  'omega' ,'PSFC'] 
+"""
 daily_allvars_3d =[ 'CLDFRA',
                     'uv_met',  'height',
                    'XTSS'   , 'XWLIQ',   'XWICE',
                    'QVAPOR',  'QCLOUD'  , 'QRAIN'     , 'QICE'     ]
-"""
-daily_allvars    = (        'W'         , 'PRMAX'   ,   'RAINC'  ,'RAINNC'  ,
-                            'AT2M'      , 'T2MAX'   , 'T2MIN'    , 'SFROFF' , 'CLDFRAg' , 
-                            'CLDFRApbl' , 'CLDCNVg' , 'CLDSCUg'  , 
-                            'TCWPC'     , 'TCWPI'   , 'TCWPR'    , 
-                            'TSLB'      , 'SMOIS'   , 'XQRCHRG'  , 
-                            'XTSS'      ,'XSMTg'    ,'SNOW'      ,'SNOWH'   ,'UDROFF'   ,'XZWT'   ,'QFX',
-                            'UQg'       , 'VQg'     , 'XOUTFLOW' , 'XRBAS'  , 'XRDRN'   , 'XRSAT' , 
-                            'UDROFF'
-				 	)
 """
 
 # diurnal cycle vars:
@@ -287,7 +280,7 @@ diurnal_allvars  = (       'PRAVG','RAINC'   ,'RAINNC'  ,
 
 
 # hourly vars:
-hourly_allvars  = ('PRAVG' , 'H'      , 'T'     , 'U'    , 'V' , 'W' , 
+hourly_allvars  = ('PRAVG' , 'H'      , 'temp'     , 'U'    , 'V' , 'omega' ,'PSFC', 
                         'Q', 'QCLOUD' , 'QRAIN' , 'QICE'
 				 	)
 #postList={"seasonal":seasonal_allvars,"monthly":monthly_allvars,"daily":daily_allvars,"diurnal":diurnal_allvars} #,
