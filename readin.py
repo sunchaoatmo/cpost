@@ -3,13 +3,14 @@ def chekitegrty(curtime,nstep,filename,filenames,outputtime,timenum):
   if not len(curtime)==nstep and filename != filenames[-1]:
     sys.exit("STOP! one wrfout is incomplete %s "%(filename))
   if not outputtime[0]==timenum:
-    sys.exit("STOP! %s is missing in wrfout serial "%(filename))
+    sys.exit("STOP! %s is missing in wrfout serial "%(timenum))
 
 def openwrfdata(filename):
   from netCDF4 import Dataset
   try:
     wrfncfile_cur=Dataset(filename,'r')
   except:
+    import sys
     sys.exit("can not open:%s "%filename)
   return wrfncfile_cur
 
@@ -194,7 +195,7 @@ def fromwrfout(filenames,rawfname,casename,taskname,periods,
                units_cur,calendar_cur,compute_mode,
                nx,ny,nlev,lastindex)
   else:
-    sys.exit("no new wrfout to process")
+    print("no new wrfout to process")
 
   return rawnc
 
