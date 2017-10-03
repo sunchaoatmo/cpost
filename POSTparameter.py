@@ -1,6 +1,7 @@
 var_parameters = {
 "QFX"              : { "compute_mode" : 1  , "shiftday" :  0 , "vert_intp" : None ,"fields":{"QFX":None}} , 
 "LH"               : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"LH":None}} , 
+"GSW"              : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"GSW":None}} , 
 "ATH2"             : { "compute_mode" : 1  , "shiftday" :  0 , "vert_intp" : None ,"fields":{"ATH2":None}} , 
 "WSAVG"            : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"WSAVG":None}} , 
 "WSMIN"            : { "compute_mode" : 9  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"WSMIN":None}} , 
@@ -30,7 +31,7 @@ var_parameters = {
                            "fields":{"AT2M":{"units":"K","description":"temperatrue at 2 meter "},
                                    #"T2M975":{"units":"K","description":"temperatrue at 2 meter 975 percentile "}
                              }},
-"PR"            : { "compute_mode" : 6  , "shiftday" : 1  , "vert_intp" : None ,"dim":3,
+"PR"            : { "compute_mode" : 6  , "shiftday" : 0  , "vert_intp" : None ,"dim":3,
                            "fields":{"PRAVG":{"units":"mm/day","description":"Average daily Precip"},
                                        "PCT":{"units":"mm/day","description":"Precip 95 percentile"},
                                  "RAINYDAYS":{"units":"day","description":"No. of days with PR larger than 1mm/day"},
@@ -257,13 +258,13 @@ daily_allvars_2d =[ 'PR',     'RAINC',   'RAINNC',
                       'SNOW',   'SNOWH', 'uv_10', 'RH',
                    'XZWT',    'XRBAS',   'XRDRN',  'XRSAT', ]
 
+"""
 daily_allvars_3d =[ 'temp'     ,  'omega' ,'PSFC'] 
 """
 daily_allvars_3d =[ 'CLDFRA',
                     'uv_met',  'height',
                    'XTSS'   , 'XWLIQ',   'XWICE',
                    'QVAPOR',  'QCLOUD'  , 'QRAIN'     , 'QICE'     ]
-"""
 
 # diurnal cycle vars:
 diurnal_allvars  = (       'PRAVG','RAINC'   ,'RAINNC'  ,

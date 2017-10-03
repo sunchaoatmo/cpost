@@ -84,6 +84,7 @@ def ppdaily(rawnc,nstep,taskname,filenames,var_parameters ,
     from netCDF4 import date2num,num2date
     from netCDF4 import Dataset
     import numpy as np
+    from constant import mmstommday
     nt=len(filenames)-shiftday 
     outputtime=np.empty([1])
     outputdata={}
@@ -93,6 +94,7 @@ def ppdaily(rawnc,nstep,taskname,filenames,var_parameters ,
     simbeg_num =date2num( simbeg_date,units=units_cur,calendar=calendar_cur)
     for iday,filename in enumerate(filenames[shiftday:]):
       wrfncfile_cur=openwrfdata(filename)
+      ntime       =wrfncfile_cur.dimensions['Time'].size
       curtime=wrfncfile_cur.variables['Times']
       date_curstep=wrftimetodate(curtime[0])
       outputtime[0]=date2num( wrftimetodate(curtime[0]),units=units_cur,calendar=calendar_cur)
@@ -103,12 +105,15 @@ def ppdaily(rawnc,nstep,taskname,filenames,var_parameters ,
 
       if compute_mode==6:
         if taskname=="PR":
+          outputdata["PRAVG"][:,:]=np.sum(wrfncfile_cur.variables['PRAVG'][:,:,:],axis=0)*1.0/ntime*mmstommday
+          """
           temp_1=wrfncfile_cur.variables['RAINC'][0,:,:] -wrfncfile_last.variables['RAINC'][0,:,:]
           temp_2=wrfncfile_cur.variables['RAINNC'][0,:,:]-wrfncfile_last.variables['RAINNC'][0,:,:]
           if np.all(temp_1>=0) and np.all(temp_1>=0):
             outputdata["PRAVG"][:,:]=temp_1+temp_2
           else:
             outputdata["PRAVG"][:,:]=0.0
+          """
         else:
           for field in var_parameters[taskname]["fields"]:
             outputdata[field][:,:]=wrfncfile_cur.variables[taskname][0,:,:]-wrfncfile_last.variables[taskname][0,:,:]
