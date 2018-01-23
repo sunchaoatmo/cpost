@@ -101,15 +101,12 @@ else:
     rank = comm.Get_rank()
     print("my rank %s"%rank)
     if nprocs>=len(tasknames):
-      try:
+      if rank<len(tasknames):
         var_loc =tasknames[rank]
-        cmd="cpost.py  -p "+args.p +" -v "+var_loc
+        cmd="cpost.py -c %s -p %s -v %s"%(args.p,args.calendar,var_loc)
         print(cmd,rank)
         call(cmd,shell=True)
         print("call finished on case %s " % (cmd))
-      except:
-        var_loc =tasknames[rank]
-        print("ERROR in rank %s with var: %s"%(rank,var_loc))
     else:
       print("we don't have enough CPU ")
     comm.Barrier()
@@ -119,7 +116,7 @@ else:
       compute_mode=var_parameters[taskname]['compute_mode'] 
       rawfname="%s_%s_%s.nc"%(casename,taskname,periods)
       if filenames:
-        filename= filenames[0]
+        filename= filenames[-1]
         rawdata = True
       else:
         filename=rawfname
