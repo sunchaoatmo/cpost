@@ -28,7 +28,7 @@ def createnc(casename,vname,periods,units,calendar,fields,nx,ny,nz=None):
   rootgrp.createDimension("west_east"        , nx )
   rootgrp.createDimension("south_north"      , ny )
   rootgrp.createDimension("time"     , None)
-  T                   = rootgrp.createVariable("time"    , "f4"  , ("time" , ))
+  T                   = rootgrp.createVariable("time"    , "f8"  , ("time" , ))
   T.units             = units
   T.calendar          = calendar
   if nz:
