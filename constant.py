@@ -1,7 +1,8 @@
 seasonList=[ [12,  2], [3, 5], [6,  8], [9,  11]]
 monthlyList=[ [1, 1],[2,2],[3,3],[4,4],[5,5],[6, 6],[7, 7],[8,8], [9, 9 ],[10, 10],[11,11],[12,12]]
 mmstommday=24.0*60.*60.
-wrfout_data_fmt="%Y-%m-%d_%H:%M:%S"
+wrfout_data_fmt="%Y-%m-%d"
+#wrfout_data_fmt="%Y-%m-%d_%H:%M:%S"
 prefix="wrfout*"
 dry_lim=1
 qvalue=0.95
