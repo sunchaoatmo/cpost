@@ -3,7 +3,7 @@ def chekitegrty(curtime,nstep,filename,filenames,outputtime,timenum):
   if not len(curtime)==nstep and filename != filenames[-1]:
     sys.exit("STOP! one wrfout is incomplete %s "%(filename))
   if not outputtime[0]==timenum:
-    sys.exit("STOP! %s is missing in wrfout serial "%(timenum))
+    sys.exit("STOP! %s is missing in wrfout serial "%(filename))
 
 def openwrfdata(filename):
   from netCDF4 import Dataset
@@ -40,8 +40,10 @@ def updatelastwrfoutfn(rawnc,units_cur,calendar_cur,filenames):
   from constant import wrfout_data_fmt   # only several constants
   import sys
   from netCDF4 import date2num,num2date
+  import glob
   lastday=num2date(rawnc.variables["time"][-1],units=units_cur,calendar=calendar_cur)
-  lastwrfout="wrfout_d01_%s"%lastday.strftime(wrfout_data_fmt)
+  lastwrfout="wrfout_d01_%s"%lastday.strftime(wrfout_data_fmt)+"*"
+  lastwrfout=glob.glob(lastwrfout)[0]
   try:
     lastindex=filenames.index(lastwrfout)
     del filenames[:lastindex]
@@ -85,50 +87,51 @@ def ppdaily(rawnc,nstep,taskname,filenames,var_parameters ,
     from netCDF4 import Dataset
     import numpy as np
     from constant import mmstommday
-    nt=len(filenames)-shiftday 
+    fields_loc=["PRAVG"] if taskname=="PR" else var_parameters[taskname]["fields"] 
+    nt=len(filenames)-abs(shiftday)
     outputtime=np.empty([1])
     outputdata={}
-    for field in var_parameters[taskname]["fields"]:
+    for field in fields_loc:
       outputdata[field]=np.empty([nlev,ny,nx])
-    simbeg_date=wrftimetodate(Dataset(filenames[shiftday],'r').variables['Times'][0])
+    beg_index=shiftday if shiftday>0 else 0
+    end_index=nt
+    simbeg_date=wrftimetodate(Dataset(filenames[beg_index],'r').variables['Times'][0])
     simbeg_num =date2num( simbeg_date,units=units_cur,calendar=calendar_cur)
-    for iday,filename in enumerate(filenames[shiftday:]):
+    wrfcfile_last=None
+    for iday,filename in enumerate(filenames[beg_index:end_index]):
       wrfncfile_cur=openwrfdata(filename)
+      if iday+1<len(filenames):
+        wrfncfile_next=openwrfdata(filenames[iday+1])
       ntime       =wrfncfile_cur.dimensions['Time'].size
       curtime=wrfncfile_cur.variables['Times']
-      date_curstep=wrftimetodate(curtime[0])
-      outputtime[0]=date2num( wrftimetodate(curtime[0]),units=units_cur,calendar=calendar_cur)
+      date_firststep=wrftimetodate(curtime[0])
+      outputtime[0]=date2num( date_firststep,units=units_cur,calendar=calendar_cur)
       # check of the intergrty of data
       timenum=iday+simbeg_num
       chekitegrty(curtime,nstep,filename,filenames,outputtime,timenum)
       # check of the intergrty of data
 
       if compute_mode==6:
-        if taskname=="PR":
-          outputdata["PRAVG"][:,:]=np.sum(wrfncfile_cur.variables['PRAVG'][:,:,:],axis=0)*1.0/ntime*mmstommday
-          """
-          temp_1=wrfncfile_cur.variables['RAINC'][0,:,:] -wrfncfile_last.variables['RAINC'][0,:,:]
-          temp_2=wrfncfile_cur.variables['RAINNC'][0,:,:]-wrfncfile_last.variables['RAINNC'][0,:,:]
-          if np.all(temp_1>=0) and np.all(temp_1>=0):
-            outputdata["PRAVG"][:,:]=temp_1+temp_2
-          else:
-            outputdata["PRAVG"][:,:]=0.0
-          """
-        else:
-          for field in var_parameters[taskname]["fields"]:
-            outputdata[field][:,:]=wrfncfile_cur.variables[taskname][0,:,:]-wrfncfile_last.variables[taskname][0,:,:]
+        #outputdata["PRAVG"][:,:]=outputdata["PRAVG"][:,:]*1.0/ntime*mmstommday
+        for field in fields_loc:
+          outputdata[field][:,:]=wrfncfile_cur.variables[taskname][-1,:,:]-wrfncfile_last.variables[taskname][-1,:,:]
+          if np.any(outputdata[field][:,:]<0.0):
+            outputdata[field][:,:]=0.0
       else:
         anal_daily(iday,outputdata,wrfncfile_cur,wrfinputnc,taskname,
-                  var_parameters[taskname]["fields"],var_parameters[taskname]["vert_intp"],outputdim,z_levs,number_of_zlevs,compute_mode)
+                   fields_loc,var_parameters[taskname]["vert_intp"],
+                   outputdim,z_levs,number_of_zlevs,compute_mode,wrfncfile_last,wrfncfile_next)
+      if taskname=="PR":
+        outputdata["PRAVG"][:,:]=outputdata["PRAVG"][:,:]*mmstommday
       wrfncfile_last=wrfncfile_cur
-      for field in var_parameters[taskname]["fields"]:
+      for field in fields_loc:
         if outputdim==3:
           rawnc.variables[field][lastindex+iday,:,:]=outputdata[field]
         elif outputdim==4:
           rawnc.variables[field][lastindex+iday,:,:,:]=outputdata[field]
       rawnc.variables["time"][lastindex+iday]=outputtime[0]
       rawnc.sync()
-      print(date_curstep)
+      print(date_firststep)
     return rawnc
 
 def pphourly(rawnc,nstep,taskname,filenames,var_parameters ,
@@ -142,17 +145,20 @@ def pphourly(rawnc,nstep,taskname,filenames,var_parameters ,
     from netCDF4 import date2num,num2date
     import numpy as np
     import sys
-    nt=nstep*len(filenames)
+    nt=nstep*(len(filenames)-abs(shiftday))
     outputtime=np.empty([nstep])
     outputdata={}
-    for field in var_parameters[taskname]["fields"]:
+    fields_loc=["PRAVG"] if taskname=="PR" else var_parameters[taskname]["fields"] 
+    for field in fields_loc:
       if nlev==1:
         outputdata[field]=np.empty([nstep,ny,nx])
       else:
         outputdata[field]=np.empty([nstep,nlev,ny,nx])
-    simbeg_date=wrftimetodate(Dataset(filenames[shiftday],'r').variables['Times'][0])
+    beg_index=shiftday if shiftday>0 else 0
+    end_index=nt
+    simbeg_date=wrftimetodate(Dataset(filenames[beg_index],'r').variables['Times'][0])
     simbeg_num =date2num( simbeg_date,units=units_cur,calendar=calendar_cur)
-    for iday,filename in enumerate(filenames[shiftday:]):
+    for iday,filename in enumerate(filenames[beg_index:end_index]):
       wrfncfile_cur=openwrfdata(filename)
       curtime=wrfncfile_cur.variables['Times']
       date_curstep=wrftimetodate(curtime[0])
@@ -162,16 +168,16 @@ def pphourly(rawnc,nstep,taskname,filenames,var_parameters ,
       timenum=iday*24+simbeg_num #watchout default the wrfout should be daily!
       chekitegrty(curtime,nstep,filename,filenames,outputtime,timenum)
       anal_hourly(iday,outputdata,wrfncfile_cur,wrfinputnc,taskname,
-                  var_parameters[taskname]["fields"],var_parameters[taskname]["vert_intp"],outputdim,z_levs,number_of_zlevs,compute_mode)
+                  fields_loc,var_parameters[taskname]["vert_intp"],outputdim,z_levs,number_of_zlevs,compute_mode)
       #for field in var_parameters[taskname]["fields"]:
       #  outputdata[field][:]=wrfncfile_cur.variables[taskname][:]
       #wrfncfile_last=wrfncfile_cur
-      for field in var_parameters[taskname]["fields"]:
+      for field in fields_loc:
         if outputdim==3:
-          rawnc.variables[field][lastindex+iday*nstep:,:,:]=outputdata[field]
+          rawnc.variables[field][(lastindex+iday)*nstep:,:,:]=outputdata[field]
         elif outputdim==4:
-          rawnc.variables[field][lastindex+iday*nstep:,:,:,:]=outputdata[field]
-      rawnc.variables["time"][lastindex+iday*nstep:]=outputtime[:]
+          rawnc.variables[field][(lastindex+iday)*nstep:,:,:,:]=outputdata[field]
+      rawnc.variables["time"][(lastindex+iday)*nstep:]=outputtime[:]
       rawnc.sync()
       print(date_curstep)
     return rawnc
@@ -193,7 +199,7 @@ def fromwrfout(filenames,rawfname,casename,taskname,periods,
   if raw_exit:
     wrfncfile_last,lastindex=updatelastwrfoutfn(rawnc,units_cur,calendar_cur,filenames)
 
-  if len(filenames)>shiftday:
+  if len(filenames)>abs(shiftday):
     processnewwrfout(rawnc,periods,taskname,nstep,filenames,var_parameters ,
                wrfncfile_last ,shiftday,var_units,var_description,
                wrfinputnc,outputdim,z_levs,number_of_zlevs,

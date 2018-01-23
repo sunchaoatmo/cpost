@@ -1,11 +1,14 @@
 import numpy as np
 
-def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,outputdim,z_levs,number_of_zlevs,compute_mode):
+def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
+               outputdim,z_levs,number_of_zlevs,compute_mode,
+               wrfncfile_last,wrfncfile_next):
   from constant import RCP,p0,G,Rd,EPS
   from ARWpost import arwpost
   import time
   pb   =wrf_i.variables['PB'][0,:,:,:]
   ntime       =wrf_o.dimensions['Time'].size
+  ntime_recip =1.0/float(ntime)
   south_north =wrf_o.dimensions['south_north'].size
   west_east   =wrf_o.dimensions['west_east'].size
   bottom_top  =wrf_o.dimensions['bottom_top'].size
@@ -124,7 +127,9 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,outputdim,z
         metfield=wrf_o.variables[field]
       if outputdim==3:
         if compute_mode==1:
-          outputdata[field][:,:]=np.mean(metfield,axis=0)
+          outputdata[field][:,:]=np.sum(metfield[1:,:,:],axis=0)
+          outputdata[field][:,:]+=wrfncfile_next.variables[field][0,:,:]
+          outputdata[field][:,:]=outputdata[field][:,:]*ntime_recip
         elif compute_mode==2:
           outputdata[field][:,:]=np.mean(np.sum(metfield,axis=1),axis=0)
         elif compute_mode==8:
@@ -218,8 +223,8 @@ def anal_sea_mon(periods,rawnc,monthList,fields,taskname,casename,shiftday,calen
         ymd_datetime=datetime(int(eyear),int(emonth),int(eday),0,0,0)
         print("%s analysis end:%s"%(periods,ymd_datetime))
         daye=date2num(ymd_datetime,units=time_units,calendar=calendar_cur)
-        dayb=dayb-rawnc.variables["time"][0]+shiftday
-        daye=daye-rawnc.variables["time"][0]+shiftday
+        dayb=dayb-rawnc.variables["time"][0]#+shiftday
+        daye=daye-rawnc.variables["time"][0]#+shiftday
         if taskname=="PR":
           data_daily_ma=ma.masked_values(rawnc.variables["PRAVG"][int(dayb):int(daye),:,:],1.e+20)
           if periods=="seasonal":
