@@ -110,6 +110,11 @@ def ppdaily(rawnc,nstep,taskname,filenames,var_parameters ,
       timenum=iday+simbeg_num
       chekitegrty(curtime,nstep,filename,filenames,outputtime,timenum)
       # check of the intergrty of data
+      if compute_mode==1 and date_firststep.hour!=0:
+         import sys
+         sys.exit("Hi budy, for average variables like this %s this processing program is written for the wrfout starting with 00 hour, it seems yours is not"%(taskname))
+
+        
 
       if compute_mode==6:
         #outputdata["PRAVG"][:,:]=outputdata["PRAVG"][:,:]*1.0/ntime*mmstommday
