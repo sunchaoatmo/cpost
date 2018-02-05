@@ -103,7 +103,7 @@ else:
     if nprocs>=len(tasknames):
       if rank<len(tasknames):
         var_loc =tasknames[rank]
-        cmd="cpost.py -c %s -p %s -v %s"%(args.p,args.calendar,var_loc)
+        cmd="cpost.py -p %s -c %s -v %s"%(args.p,args.calendar,var_loc)
         print(cmd,rank)
         call(cmd,shell=True)
         print("call finished on case %s " % (cmd))
