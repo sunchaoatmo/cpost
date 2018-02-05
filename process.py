@@ -127,9 +127,12 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
         metfield=wrf_o.variables[field]
       if outputdim==3:
         if compute_mode==1:
-          outputdata[field][:,:]=np.sum(metfield[1:,:,:],axis=0)
-          outputdata[field][:,:]+=wrfncfile_next.variables[field][0,:,:]
-          outputdata[field][:,:]=outputdata[field][:,:]*ntime_recip
+          if field not in ["CAPE","CIN","RH","u_10","v_10"]:
+            outputdata[field][:,:]=np.sum(metfield[1:,:,:],axis=0)
+            outputdata[field][:,:]+=wrfncfile_next.variables[field][0,:,:]
+            outputdata[field][:,:]=outputdata[field][:,:]*ntime_recip
+          else:
+            outputdata[field][:,:]=np.mean(metfield[:,:,:],axis=0)
         elif compute_mode==2:
           outputdata[field][:,:]=np.mean(np.sum(metfield,axis=1),axis=0)
         elif compute_mode==8:
