@@ -627,6 +627,212 @@ CONTAINS
 
   END SUBROUTINE calc_uvmet_3d
 
+  SUBROUTINE calc_cldfra( pres,cldfra,cldfra_low,cldfra_mid,cldfra_high,cldfra_total,&
+                          itime,ntime,nz,ny,nx)
+
+  USE module_constants, ONLY:pt,pb,nclg 
+
+  IMPLICIT NONE
+
+  !Arguments
+  real,  dimension(nz,ny,nx),intent(in)    :: pres,cldfra
+  real,  dimension(ntime,ny,nx),intent(inout) :: cldfra_low,cldfra_mid,cldfra_high,cldfra_total
+  integer, intent(in)                      :: nx, ny, nz
+  integer, intent(in)                      :: ntime
+  integer, intent(in)                      :: itime
+  integer, parameter                       :: io=3
+  integer, parameter                       :: im=1 ! do one point each time
+
+  !Local
+  integer                                         :: i, j, k
+  real co(im,nclg)            ! bulk cloud cover between [pt,pb]
+
+  
+
+
+  DO i = 1, nx
+  DO j = 1, ny
+     call clbulk(io,nclg,pt,pb,pres(:,j,i),cldfra(:,j,i),im,nz,co)
+     cldfra_total(1+itime,j,i)=co(im,1)
+     cldfra_high(1+itime,j,i) =co(im,2)
+     cldfra_mid(1+itime,j,i)  =co(im,3)
+     cldfra_low(1+itime,j,i)  =co(im,4)
+  END DO
+  END DO
+
+  END SUBROUTINE calc_cldfra
+
+!     --------------------------------------------
+  SUBROUTINE clbulk(io,nc,pt,pb,p,ci,im,nl,co)
+!     --------------------------------------------
+!
+!     bulk overlapped cloud cover from between [pt,pb] topdown
+!
+! Input
+      integer io                ! vertical overlapping
+      integer nc                ! no of bulk cloud layers
+      integer im,nl             ! no of horizontal grids,vertical levels
+      real pt(nc),pb(nc)        ! top,bot boundary pressure
+      real p(im,nl),ci(im,nl)   ! level pressure,cloud cover
+!
+! Output
+      real co(im,nc)            ! bulk cloud cover between [pt,pb]
+!
+! Local
+      integer i,k,n
+      real px(im,nl),cx(im,nl)  ! flipped p,ci
+!
+! flip up if input level is surface->top
+!
+      call flipup(p ,im,nl,px)
+      call flipup(ci,im,nl,cx)
+!
+      SELECT CASE (io) 
+!
+!-----random overlapping
+!
+      CASE (1)
+         do n = 1,nc 
+            k = 1
+            do i = 1,im 
+               if (pt(n).le.px(i,k).and.px(i,k).lt.pb(n)) then 
+                  co(i,n) = 1. - cx(i,k)
+               else 
+                  co(i,n) = 1. 
+               endif
+            enddo
+            do k = 2,nl 
+               do i = 1,im 
+                  if (pt(n).le.px(i,k).and.px(i,k).lt.pb(n))        &    
+                  co(i,n) = (1. - cx(i,k-1)) * co(i,n)
+               enddo
+            enddo
+            do i = 1,im 
+               co(i,n) = 1. - co(i,n)
+            enddo
+         enddo
+! 
+! 
+!-----maximum overlapping 
+! 
+      CASE (2)
+         do n = 1,nc 
+            k = 1
+            do i = 1,im 
+               if (pt(n).le.px(i,k).and.px(i,k).lt.pb(n)) then 
+                  co(i,n) = cx(i,k)
+               else
+                  co(i,n) = 0. 
+               endif
+            enddo
+            do k = 2,nl 
+               do i = 1,im 
+                  if (pt(n).le.px(i,k).and.px(i,k).lt.pb(n))        &
+                  co(i,n) = max(cx(i,k-1),co(i,n))
+               enddo
+            enddo
+         enddo
+! 
+!-----mixed overlapping (random/maximum for non-/adjacent layers
+! 
+      CASE (3)
+         do n = 1,nc 
+            k = 1
+            do i = 1,im 
+      !      do i = 10,10!im
+               if (pt(n).le.px(i,k).and.px(i,k).lt.pb(n)) then 
+                  co(i,n) = 1. - cx(i,k)
+                  !print*,"pt,px,pb",pt(n),px(i,k),pb(n),k,n
+                  !print*,"co",co(i,n),"cx", cx(i,k),"branch1"
+               else
+                  co(i,n) = 1. 
+      !            print*,"pt,px,pb",pt(n),px(i,k),pb(n)
+      !            print*,"co",co(i,n),"cx", cx(i,k),"branch2"
+               endif
+            enddo
+            do k = 2,nl 
+               do i = 1,im 
+              ! do i = 10,10!im 
+                  if (pt(n).le.px(i,k).and.px(i,k).lt.pb(n))        &
+                  co(i,n) = co(i,n) * (1. - max(cx(i,k-1),cx(i,k))) &
+                                    / (1.0000001 - cx(i,k-1))
+    !              print*,"co",co(i,n),"cx", cx(i,k),"final"
+               enddo 
+            enddo 
+            do i = 1,im 
+     !       do i = 10,10!im
+               co(i,n) = 1. - co(i,n)
+     !          print*,"co",co(i,n)
+            enddo
+         enddo
+     !pause
+
+      CASE default
+         STOP 'xxxx undefined io (cloud overlap)!'
+
+      END SELECT
+
+  END SUBROUTINE clbulk
+
+
+
+  SUBROUTINE flipup(fin,noh,kin,fot)
+!     ----------------------------------
+!
+!     flip up: top->sfc or sfc->top
+!
+      USE module_constants, ONLY:doflip
+      
+      integer :: noh,kin
+      real    :: fin(noh,kin)
+      real, optional :: fot(noh,kin)
+
+      real :: wk(noh,kin)
+      integer :: i,k,l
+
+      if (present(fot)) then
+
+         if (doflip) then
+            do k = 1,kin
+               l = 1+kin - k 
+               do i = 1,noh
+                  fot(i,k) = fin(i,l)
+               enddo
+            enddo
+         else
+            fot = fin 
+         endif
+
+      else
+
+         if (doflip) then
+            wk = fin 
+            do k = 1,kin
+               l = 1+kin - k 
+               do i = 1,noh
+                  fin(i,k) = wk(i,l)
+               enddo
+            enddo
+         endif
+
+      endif
+
+  END SUBROUTINE flipup
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   SUBROUTINE calc_uvmet_2d(U10 ,   V10,  &
                           u_met, v_met,  &
                           lon  , lat  ,  &

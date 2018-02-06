@@ -100,7 +100,7 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
         geopt_w=ph+phb
         psfc =wrf_o.variables['PSFC'][itime,:,:]
         geopt=(geopt_w[1:,:,:]+geopt_w[:-1,:,:])/2.0
-        arwpost.calc_cape(cape_out=cape, cin_out=cin,itime=itime, 
+        arwpost.calc_cape(cape_out=cape, cin_out=cin,itime=itime+1, 
                       hgt=hgt,  qv_in=qv,  pres_in=pres, tk_in=tk, geopt_in=geopt,psfc=psfc,
              bottom_top_dim=bottom_top       , south_north_dim=south_north     , west_east_dim=west_east,ntime=ntime)
     elif taskname=="RH":
@@ -110,6 +110,22 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
         t2m   =wrf_o.variables['T2M'][itime,:,:]
         psfc  =wrf_o.variables['PSFC'][itime,:,:]
         rh[itime,:,:]    =arwpost.calc_rh( q2m=q2m,t2m=t2m,psfc=psfc)
+    elif taskname=="cldfrag":
+      cldfra_low =np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
+      cldfra_mid =np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
+      cldfra_high=np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
+      cldfra_total=np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
+      for itime in range(ntime):
+        cldfra=wrf_o.variables['CLDFRA'][itime,:,:]
+        p     =wrf_o.variables['P'][itime,:,:,:]
+        pres  =p+pb
+        presmb=pres/100
+        arwpost.calc_cldfra( pres=presmb,cldfra=cldfra,
+                             cldfra_total=cldfra_total,
+                             cldfra_low=cldfra_low,
+                             cldfra_mid=cldfra_mid,
+                             cldfra_high=cldfra_high,itime=itime)
+
     for field in fields:
       if field=="CAPE":
         metfield=cape
@@ -121,13 +137,21 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
         metfield=wrf_o.variables["AU10"][:,:,:]
       elif field=="v_10":
         metfield=wrf_o.variables["AV10"][:,:,:]
+      elif field=="cldfra_low":
+        metfield=cldfra_low
+      elif field=="cldfra_mid":
+        metfield=cldfra_mid
+      elif field=="cldfra_high":
+        metfield=cldfra_high
+      elif field=="cldfra_total":
+        metfield=cldfra_total
       elif field=="WIN_10":
         continue 
       else:
         metfield=wrf_o.variables[field]
       if outputdim==3:
         if compute_mode==1:
-          if field not in ["CAPE","CIN","RH","u_10","v_10"]:
+          if field not in ["CAPE","CIN","RH","u_10","v_10","cldfra_low","cldfra_mid","cldfra_high","cldfra_total"]:
             outputdata[field][:,:]=np.sum(metfield[1:,:,:],axis=0)
             outputdata[field][:,:]+=wrfncfile_next.variables[field][0,:,:]
             outputdata[field][:,:]=outputdata[field][:,:]*ntime_recip
@@ -157,8 +181,6 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
       outputdata["WIN_10"][:,:]=win
       outputdata["u_10"][:,:]=ue
       outputdata["v_10"][:,:]=ve
-
-
   return 
 
 def anal_sea_mon(periods,rawnc,monthList,fields,taskname,casename,shiftday,calendar_cur,time_units,units,description,nx,ny,nz,r95t_hist):
