@@ -117,7 +117,10 @@ else:
     for taskname in tasknames:
       shiftday=var_parameters[taskname]['shiftday'] if periods=="daily"  else 0
       compute_mode=var_parameters[taskname]['compute_mode'] 
-      rawfname="%s_%s_%s.nc"%(casename,taskname,periods)
+      if args.inputfname:
+        rawfname="%s_%s_%s_%s.nc"%(casename,taskname,periods,args.inputfname[11:])
+      else:
+        rawfname="%s_%s_%s.nc"%(casename,taskname,periods)
       if filenames:
         filename= filenames[-1]
         rawdata = True
@@ -140,7 +143,7 @@ else:
         rawnc=Dataset(filename,'r')
 
 ########################DIAG PART#################################
-      if periods=="daily":
+      if periods=="daily" and not args.inputfname:
         anal_sea_mon("seasonal",rawnc,seasonList,var_parameters[taskname]["fields"].keys(),
                           taskname,casename,shiftday,calendar_cur,units_cur,var_units,var_description,ny,nx,nlev,r95tnc)
         anal_sea_mon("monthly",rawnc,monthlyList,var_parameters[taskname]["fields"].keys(),
