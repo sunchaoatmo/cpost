@@ -197,9 +197,126 @@ xi=b0+alpha*(gamma1k-1.0)/k
 
 end subroutine
 
+SUBROUTINE convetive2total(pr,raincv,ratio_bin,&
+                 maskval,mask,&
+                 low_bin,up_bin,&
+                 nx,ny,nt,nbin &
+                 )
+  ! USESindexx
+  !Sorts an array ra(1:n) into ascending numerical order 
+  !while making the corresponding rearrangements of the arrays rb(1:n) and rc(1:n). 
+  !An index table is constructed via the routine indexx.
+  INTEGER,intent(in)                   ::nx,ny,nt,nbin
+  REAL,dimension(nt,nx,ny),intent(in)  ::pr,raincv
+  REAL,intent(in),dimension(nx,ny)     ::mask
+  INTEGER,intent(in),dimension(nbin)   ::low_bin
+  INTEGER,intent(in),dimension(nbin)   ::up_bin
+  REAL,intent(in)                      ::maskval
+  REAL,dimension(nbin),intent(out)     ::ratio_bin
+  !loc
+  REAL                                 ::pr_1d(nbin),raincv_1d(nbin)
+  INTEGER                              ::ibin,i,j,t,t2,iday,nday,npoints
+  INTEGER                              ::up_ind,low_ind
+
+  pr_1d(:)=0.0
+  raincv_1d(:)=0.0
+  do i=1,nx
+    do j=1,ny
+      if (mask(i,j).eq.maskval) then
+        do t=1,nt
+          do ibin=1,nbin
+            if (pr(t,i,j).le.up_bin(ibin).and.up_bin(ibin).gt.low_bin(ibin))then
+               pr_1d(ibin)=pr_1d(ibin)+pr(t,i,j)
+               raincv_1d(ibin)=raincv_1d(ibin)+raincv(t,i,j)
+               exit
+            endif
+          enddo
+        enddo
+      endif
+    enddo
+  enddo
+
+  ratio_bin(:)=raincv_1d+pr_1d
+END SUBROUTINE convetive2total
+
+
 
 !#####################################
 
+SUBROUTINE sort3(pr,raincv,ratio_bin,&
+                 maskval,mask,&
+                 low_bin,up_bin,&
+                 nx,ny,nt,nbin, &
+                 qctl)
+  ! USESindexx
+  !Sorts an array ra(1:n) into ascending numerical order 
+  !while making the corresponding rearrangements of the arrays rb(1:n) and rc(1:n). 
+  !An index table is constructed via the routine indexx.
+  INTEGER,intent(in)                   ::nx,ny,nt,nbin
+  REAL,dimension(nt,nx,ny),intent(in)  ::pr,raincv
+  REAL,intent(in),dimension(nx,ny)     ::mask
+  INTEGER,intent(in),dimension(nbin)   ::low_bin
+  INTEGER,intent(in),dimension(nbin)   ::up_bin
+  REAL,intent(in)                      ::maskval
+  REAL,intent(in)                      ::qctl
+  REAL,dimension(nbin),intent(out)     ::ratio_bin
+  !loc
+  REAL,dimension(nt      )             ::pr_temp,ratio_1d
+  REAL,dimension(nbin,nx,ny)           ::ratio_bin_2d
+  INTEGER                              ::iwksp(nt)
+  REAL                                 ::wksp(nt)
+  INTEGER                              ::ibin,i,j,t,t2,iday,nday,npoints
+  INTEGER                              ::up_ind,low_ind
+
+  ratio_bin_2d(:,:,:)=0.0
+  do i=1,nx
+    do j=1,ny
+      if (mask(i,j).eq.maskval) then
+        iday=0
+        do t=1,nt
+          if (pr(t,i,j)>qctl)then 
+            iday=iday+1
+            pr_temp(iday)=pr(t,i,j)
+            ratio_1d(iday)=raincv(t,i,j)/pr_temp(iday)
+          endif
+        enddo
+        nday=iday
+        call indexx(iday,pr_temp(1:nday),iwksp(1:nday)) 
+        do iday=1,nday
+          wksp(iday)=ratio_1d(iday) 
+        enddo 
+        do  iday=1,nday
+          ratio_1d(iday)=wksp(iwksp(iday))
+        enddo 
+        do ibin=1,nbin
+          low_ind=floor(low_bin(ibin)/100.0*nday) 
+          low_ind=max(low_ind,1)
+          up_ind=ceiling(up_bin(ibin)/100.0*nday)
+          up_ind=min(nday,up_ind)
+          do t2=low_ind,up_ind
+            ratio_bin_2d(ibin,i,j)=ratio_bin_2d(ibin,i,j)+ratio_1d(t2)
+          enddo
+          if (low_ind<up_ind) then 
+            ratio_bin_2d(ibin,i,j)=ratio_bin_2d(ibin,i,j)/(up_ind-low_ind)
+          else
+            ratio_bin_2d(ibin,i,j)=0.0
+          endif
+        enddo
+      endif
+    enddo
+  enddo
+  ratio_bin(:)=0.0
+  npoints=0
+  do i=1,nx
+    do j=1,ny
+      if (mask(i,j).eq.maskval) then
+        ratio_bin(:)=ratio_bin(:)+ratio_bin_2d(:,i,j)
+        npoints=npoints+1
+      endif
+    enddo
+  enddo
+  ratio_bin(:)=ratio_bin(:)/npoints
+END SUBROUTINE sort3
 
   subroutine tendif3dgev(pr , qctl,season_periods_loc ,   &
   mask                   , maskval            , pr_ctl,&
@@ -1157,5 +1274,57 @@ end subroutine
  return
  END SUBROUTINE PIKSRT
 
+ SUBROUTINE indexx (n,arrin,indx)
+
+!     Use the Heapsort algorithm to index an array arrin of length n.
+!     Output the array indx such that arrin(indx(j)) is in ascending
+!     order for j = 1,2,...,n.  The input quantities n and arrin are
+!     not changed.
+
+!     This is a Numerical Recipes routine, but modified by one
+!     line to work if n equals 1.
+
+  integer i, n, indx(n), indxt, ir, j, l
+  real arrin(n), q
+
+  do 11 j=1,n
+    indx(j)=j
+11    continue
+  if (n .eq. 1) return
+  l=n/2+1
+  ir=n
+10    continue
+    if(l.gt.1)then
+      l=l-1
+      indxt=indx(l)
+      q=arrin(indxt)
+    else
+      indxt=indx(ir)
+      q=arrin(indxt)
+      indx(ir)=indx(1)
+      ir=ir-1
+      if(ir.eq.1)then
+        indx(1)=indxt
+        return
+      endif
+    endif
+    i=l
+    j=l+l
+20      if(j.le.ir)then
+      if(j.lt.ir)then
+        if(arrin(indx(j)).lt.arrin(indx(j+1)))j=j+1
+      endif
+      if(q.lt.arrin(indx(j)))then
+        indx(i)=indx(j)
+        i=j
+        j=j+j
+      else
+        j=ir+1
+      endif
+    go to 20
+    endif
+    indx(i)=indxt
+  go to 10
+  END SUBROUTINE indexx
 END MODULE CS_STAT
 
