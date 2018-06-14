@@ -1,6 +1,9 @@
 def chekitegrty(curtime,nstep,filename,filenames,outputtime,timenum):
   import sys
   if not len(curtime)==nstep and filename != filenames[-1]:
+    print("len curtime:%s, nstep:%s"%(len(curtime),nstep))
+    print("test file:%s"%filename)
+    print("last file:%s"%filenames[-1])
     sys.exit("STOP! one wrfout is incomplete %s "%(filename))
   if not outputtime[0]==timenum:
     sys.exit("STOP! %s is missing in wrfout serial "%(filename))
@@ -46,6 +49,7 @@ def updatelastwrfoutfn(rawnc,units_cur,calendar_cur,filenames):
   lastwrfout=glob.glob(lastwrfout)[0]
   try:
     lastindex=filenames.index(lastwrfout)
+    print("lastindex%s"%lastindex)
     del filenames[:lastindex]
     ncfile_last=Dataset(filenames[0],'r') # replace the ncfile_last from the wrfout
   except:
@@ -92,7 +96,7 @@ def ppdaily(rawnc,nstep,taskname,filenames,var_parameters ,
     outputtime=np.empty([1])
     outputdata={}
     for field in fields_loc:
-      outputdata[field]=np.empty([nlev,ny,nx])
+      outputdata[field]=np.zeros([nlev,ny,nx])
     beg_index=shiftday if shiftday>0 else 0
     end_index=nt
     simbeg_date=wrftimetodate(Dataset(filenames[beg_index],'r').variables['Times'][0])
