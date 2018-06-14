@@ -71,11 +71,14 @@ z_levs=args.z_levs
 number_of_zlevs=len(z_levs)
 
 if periods=="daily":
-  units_cur = 'days since 0001-01-01 00:00'
+  units_cur = 'days since 0001-01-01 00:00:00'
 elif periods=="hourly":
   units_cur = 'hours since 0001-01-01 00:00'
 Oneday=timedelta(days=1)
-filenames=sorted(glob.glob(prefix))
+if args.inputfname:
+  filenames=[args.inputfname]
+else:
+  filenames=sorted(glob.glob(prefix))
 
 if args.sjob:
   nprocs=len(tasknames)

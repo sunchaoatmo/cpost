@@ -106,6 +106,8 @@ def ppdaily(rawnc,nstep,taskname,filenames,var_parameters ,
       wrfncfile_cur=openwrfdata(filename)
       if iday+1<len(filenames):
         wrfncfile_next=openwrfdata(filenames[iday+1])
+      else:
+        wrfncfile_next=None
       ntime       =wrfncfile_cur.dimensions['Time'].size
       curtime=wrfncfile_cur.variables['Times']
       date_firststep=wrftimetodate(curtime[0])
