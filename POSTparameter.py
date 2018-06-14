@@ -85,6 +85,7 @@ var_parameters = {
 "SDII"             : { "compute_mode" : 15 , "shiftday" : 0  , "vert_intp" : None ,"fields":{"SDII":None}} , 
 "R95T"             : { "compute_mode" : 16 , "shiftday" : 0  , "vert_intp" : None ,"fields":{"R95T":None}} , 
 "PSFC"             : { "compute_mode" : 1  , "shiftday" : 0 , "vert_intp" : None ,"fields":{"PSFC":None}} , 
+"PMSL"             : { "compute_mode" : 1  , "shiftday" : 0 , "vert_intp" : None ,"fields":{"PMSL":None}} , 
 "AU10"             : { "compute_mode" : 1  , "shiftday" : -1 , "vert_intp" : None ,"fields":{"AU10":None}} , 
 "AV10"             : { "compute_mode" : 1  , "shiftday" : -1 , "vert_intp" : None ,"fields":{"AV10":None}} , 
 "AQ2M"             : { "compute_mode" : 1  , "shiftday" : -1 , "vert_intp" : None ,"fields":{"AQ2M":None}} , 
@@ -183,6 +184,8 @@ var_parameters = {
                        "fields":{
                                "CAPE":{"units":"J/kg","description":"Convective Available Potential Energy "}, 
                                 "CIN":{"units":"J/kg","description":"Convective Inhibition"} }} , 
+"slp"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None  ,"dim":3,
+                       "fields":{ "slp":{"units":"Pa","description":"sea level pressure"} }} , 
 "cldfrag"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None  ,"dim":3,
                        "fields":{
                                "cldfra_total":{"units":"unitless","description":"total cloud"}, 
@@ -249,7 +252,7 @@ monthly_allvars  = (           'PRAVG'     , 'PRMAX'   , 'PRMIN'    , 'RAINC'   
 				 	)
 
 # save daily data of following vars 
-daily_allvars_2d =[ 'PR',     'RAINC',   'RAINNC',
+daily_allvars_2d =[ 'slp', 'PR',     'RAINC',   'RAINNC',
                   'AU10'    , 'AV10'      , 'AQ2M'    , 'WSAVG'    , 'WSMAX'   , 
                     'AT2M',   'T2MAX',   'T2MIN',
                   'ASWUPT',   'ASWUPTC', 'ASWDNT', 'ASWDNS',  'ASWDNSC',  'ASWUPS',  'ASWUPSC',
@@ -260,7 +263,7 @@ daily_allvars_2d =[ 'PR',     'RAINC',   'RAINNC',
                   'AHFX'    , 'ALFX'      , 
                   'ALBEDO'  , 'TSK'       , 
                   'XQRCHRG' , 
-                  'PSFC'    ,
+                  'PSFC'    , 'PMSL'      , 'cldfrag'    ,
                       'SNOW',   'SNOWH', 'uv_10', 'RH',
                    'XZWT',    'XRBAS',   'XRDRN',  'XRSAT', ]
 

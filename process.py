@@ -7,6 +7,7 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
   from ARWpost import arwpost
   import time
   pb   =wrf_i.variables['PB'][0,:,:,:]
+  phb  =wrf_i.variables['PHB'][0,:,:,:]
   ntime       =wrf_o.dimensions['Time'].size
   ntime_recip =1.0/float(ntime)
   south_north =wrf_o.dimensions['south_north'].size
@@ -17,8 +18,6 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
     sinalpha = wrf_i.variables['SINALPHA'][0]
   if vert_intp=="p":
     hgt  =wrf_i.variables['HGT'][0,:,:]
-    if taskname=="geopt" or taskname=="height" or taskname=="temp" or taskname=="omega":
-      phb  =wrf_i.variables['PHB'][0,:,:,:]
     tk   =None
     geopt=None
     qv   =None
@@ -88,7 +87,6 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
       cape=np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
       cin =np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
       hgt  =wrf_i.variables['HGT'][0,:,:]
-      phb  =wrf_i.variables['PHB'][0,:,:,:]
       for itime in range(ntime):
         p    =wrf_o.variables['P'][itime,:,:,:]
         pres =p+pb
@@ -99,7 +97,7 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
         ph   =wrf_o.variables['PH'][itime,:,:,:]
         geopt_w=ph+phb
         psfc =wrf_o.variables['PSFC'][itime,:,:]
-        geopt=(geopt_w[1:,:,:]+geopt_w[:-1,:,:])/2.0
+        geopt=(geopt_w[1:,:,:]+geopt_w[:-1,:,:])*0.5
         arwpost.calc_cape(cape_out=cape, cin_out=cin,itime=itime+1, 
                       hgt=hgt,  qv_in=qv,  pres_in=pres, tk_in=tk, geopt_in=geopt,psfc=psfc,
              bottom_top_dim=bottom_top       , south_north_dim=south_north     , west_east_dim=west_east,ntime=ntime)
@@ -125,6 +123,23 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
                              cldfra_low=cldfra_low,
                              cldfra_mid=cldfra_mid,
                              cldfra_high=cldfra_high,itime=itime)
+    elif taskname=="slp":
+      slp=np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
+      for itime in range(ntime):
+        p    =wrf_o.variables['P'][itime,:,:,:]
+        pres =p+pb
+        qv   =wrf_o.variables['QVAPOR'][itime,:,:,:]
+        t  =wrf_o.variables['T'][itime,:,:,:]
+        tk = (t+300.) * ( pres / p0 )**RCP
+        ph   =wrf_o.variables['PH'][itime,:,:,:]
+        geopt_w=ph+phb
+        geopt=(geopt_w[1:,:,:]+geopt_w[:-1,:,:])*0.5
+        arwpost.calc_slp(pres=pres, geopt=geopt,tk=tk, qv=qv,slp=slp,
+                         itime=itime,
+                         bottom_top_dim =bottom_top , 
+                         south_north_dim=south_north,
+                         west_east_dim=west_east,ntime=ntime)
+
 
     for field in fields:
       if field=="CAPE":
@@ -145,13 +160,15 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
         metfield=cldfra_high
       elif field=="cldfra_total":
         metfield=cldfra_total
+      elif field=="slp":
+        metfield=slp
       elif field=="WIN_10":
         continue 
       else:
         metfield=wrf_o.variables[field]
       if outputdim==3:
         if compute_mode==1:
-          if field not in ["CAPE","CIN","RH","u_10","v_10","cldfra_low","cldfra_mid","cldfra_high","cldfra_total"]:
+          if field not in ["CAPE","CIN","RH","u_10","v_10","cldfra_low","cldfra_mid","cldfra_high","cldfra_total","slp"]:
             outputdata[field][:,:]=np.sum(metfield[1:,:,:],axis=0)
             outputdata[field][:,:]+=wrfncfile_next.variables[field][0,:,:]
             outputdata[field][:,:]=outputdata[field][:,:]*ntime_recip
@@ -256,6 +273,7 @@ def anal_sea_mon(periods,rawnc,monthList,fields,taskname,casename,shiftday,calen
             R95T_HIST=r95t_hist.variables["R95T_hist"][j]
           else:
             R95T_HIST=None
+          R95T_HIST=None
           (diagnc.variables["RAINYDAYS"][i_cur,j,:,:],
            diagnc.variables["R10"][i_cur,j,:,:],
            diagnc.variables["R5D"][i_cur,j,:,:],
