@@ -23,7 +23,7 @@ def saveenv(file_hd,field):
 parser = argparse.ArgumentParser(description='Post pocess the varialbe you choose ')
 parser.add_argument("-p",help="run type",default='daily',choices=['daily','hourly'])
 parser.add_argument("-c","--calendar",help="the type of calendar which is gonna be used",default='gregorian',
-                    choices=['gregorian','noleap'])
+                    choices=['gregorian','noleap','proleptic_gregorian','standard'])
 parser.add_argument("--dim","-d",help="which group of data to be processed 2d or 3d", choices=['2','3'])
 parser.add_argument("-i",help="wrfinput location")
 parser.add_argument("-v",help="post pocess varialble")
