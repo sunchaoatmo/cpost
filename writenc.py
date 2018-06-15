@@ -22,8 +22,9 @@ def createsmnc(casename,vname,periods,fields,nx,ny,nz=None):
   return rootgrp
 
 
-def createnc(casename,vname,periods,units,calendar,fields,nx,ny,nz=None):
-  filename            = "%s_%s_%s.nc"%(casename,vname,periods)
+#def createnc(casename,vname,periods,units,calendar,fields,nx,ny,nz=None):
+def createnc(filename,vname,periods,units,calendar,fields,nx,ny,nz=None):
+  #filename            = "%s_%s_%s.nc"%(casename,vname,periods)
   rootgrp             = Dataset(filename                   , "w")
   rootgrp.createDimension("west_east"        , nx )
   rootgrp.createDimension("south_north"      , ny )

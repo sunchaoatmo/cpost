@@ -32,7 +32,7 @@ def getrawnc(rawfname,casename,taskname,periods,units_cur,calendar_cur,var_param
   if not raw_exit:
     if os.path.isfile(rawfname):
       os.remove(rawfname)
-    rawnc=createnc(casename,taskname,periods,units_cur,calendar_cur,var_parameters[taskname]["fields"].keys(),nx,ny,nlev  )
+    rawnc=createnc(rawfname,taskname,periods,units_cur,calendar_cur,var_parameters[taskname]["fields"].keys(),nx,ny,nlev  )
     for field in var_parameters[taskname]["fields"]:
       rawnc.variables[field].units=var_units[field]
       rawnc.variables[field].description=var_description[field]
