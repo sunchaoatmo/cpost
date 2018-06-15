@@ -2119,6 +2119,82 @@ CONTAINS
       END DO
     END DO
   END SUBROUTINE calc_tpw
+!-----------------------------------------------------------------------
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!-----------------------------------------------------------------------
+  SUBROUTINE calc_lwp(pres,psfc,qc,qr, &
+                      lwp, &
+                      itime,ntime         , &
+                      bottom_top_dim, south_north_dim , west_east_dim)
+    !Arguments
+    integer, intent(in)               :: bottom_top_dim,south_north_dim,west_east_dim
+    integer, intent(in)               :: itime,ntime
+    real, dimension(bottom_top_dim,south_north_dim,west_east_dim),intent(in)   :: &
+                                      pres,qc,qr
+    real, dimension(south_north_dim,west_east_dim),intent(in)   :: PSFC
+
+    real, dimension(ntime         ,south_north_dim,west_east_dim),intent(inout):: lwp
+
+    !Local
+    real, dimension(bottom_top_dim+1)                 :: p8w
+    real                                              :: pdel
+    integer                                           :: i, j, k
+
+
+    lwp(itime+1,:,:)=0.0
+
+    DO j=1,west_east_dim
+      DO i=1,south_north_dim
+        p8w(1)=psfc(i,j)
+        DO k=1,bottom_top_dim
+           p8w(k+1)=2.0*pres(k,i,j)-p8w(k)
+        ENDDO
+        DO k=1,bottom_top_dim
+           pdel=p8w(k)-p8w(k+1)
+           lwp(itime+1,i,j) =lwp(itime+1,i,j)+pdel*(qc(k,i,j)+qr(k,i,j))*g_rev
+        ENDDO
+      END DO
+    END DO
+  END SUBROUTINE calc_lwp
+!-----------------------------------------------------------------------
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!-----------------------------------------------------------------------
+  SUBROUTINE calc_iwp(pres,psfc,qg,qs,qi, &
+                      iwp, &
+                      itime,ntime         , &
+                      bottom_top_dim, south_north_dim , west_east_dim)
+    !Arguments
+    integer, intent(in)               :: bottom_top_dim,south_north_dim,west_east_dim
+    integer, intent(in)               :: itime,ntime
+    real, dimension(bottom_top_dim,south_north_dim,west_east_dim),intent(in)   :: &
+                                      pres,qg,qs,qi
+    real, dimension(south_north_dim,west_east_dim),intent(in)   :: PSFC
+
+    real, dimension(ntime         ,south_north_dim,west_east_dim),intent(inout):: iwp
+
+    !Local
+    real, dimension(bottom_top_dim+1)                 :: p8w
+    real                                              :: pdel
+    integer                                           :: i, j, k
+
+
+    iwp(itime+1,:,:)=0.0
+
+    DO j=1,west_east_dim
+      DO i=1,south_north_dim
+        p8w(1)=psfc(i,j)
+        DO k=1,bottom_top_dim
+           p8w(k+1)=2.0*pres(k,i,j)-p8w(k)
+        ENDDO
+        DO k=1,bottom_top_dim
+           pdel=p8w(k)-p8w(k+1)
+           iwp(itime+1,i,j) =iwp(itime+1,i,j)+pdel*(qg(k,i,j)+qs(k,i,j)+qi(k,i,j))*g_rev
+        ENDDO
+      END DO
+    END DO
+  END SUBROUTINE calc_iwp
+
+
 
 
 

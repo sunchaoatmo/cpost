@@ -156,6 +156,36 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
                          bottom_top_dim =bottom_top , 
                          south_north_dim=south_north,
                          west_east_dim=west_east,ntime=ntime)
+    elif taskname=="lwp":
+      lwp=np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
+      for itime in range(ntime):
+        p    =wrf_o.variables['P'][itime,:,:,:]
+        pres =p+pb
+        qc   =wrf_o.variables['QCLOUD'][itime,:,:,:]
+        qr   =wrf_o.variables['QRAIN'][itime,:,:,:]
+        psfc =wrf_o.variables['PSFC'][itime,:,:]
+        arwpost.calc_lwp(pres=pres,qc=qc,qr=qr,psfc=psfc,
+                         lwp=lwp,
+                         itime=itime,
+                         bottom_top_dim =bottom_top , 
+                         south_north_dim=south_north,
+                         west_east_dim=west_east,ntime=ntime)
+    elif taskname=="iwp":
+      iwp=np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
+      for itime in range(ntime):
+        p    =wrf_o.variables['P'][itime,:,:,:]
+        pres =p+pb
+        qs   =wrf_o.variables['QSNOW'][itime,:,:,:]
+        qg   =wrf_o.variables['QGRAUP'][itime,:,:,:]
+        qi   =wrf_o.variables['QICE'][itime,:,:,:]
+        psfc =wrf_o.variables['PSFC'][itime,:,:]
+        arwpost.calc_iwp(pres=pres,qs=qs,qg=qg,qi=qi,psfc=psfc,
+                         iwp=iwp,
+                         itime=itime,
+                         bottom_top_dim =bottom_top , 
+                         south_north_dim=south_north,
+                         west_east_dim=west_east,ntime=ntime)
+ 
         
 
 
@@ -188,13 +218,17 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
         metfield=tpw_h
       elif field=="tpw_m":
         metfield=tpw_m
+      elif field=="lwp":
+        metfield=lwp
+      elif field=="iwp":
+        metfield=iwp
       elif field=="WIN_10":
         continue 
       else:
         metfield=wrf_o.variables[field]
       if outputdim==3:
         if compute_mode==1:
-          if field not in ["CAPE","CIN","RH","u_10","v_10","cldfra_low","cldfra_mid","cldfra_high","cldfra_total","slp","tpw_l","tpw_m","tpw_h"]:
+          if field not in ["CAPE","CIN","RH","u_10","v_10","cldfra_low","cldfra_mid","cldfra_high","cldfra_total","slp","tpw_l","tpw_m","tpw_h","lwp","iwp"]:
             outputdata[field][:,:]=np.sum(metfield[1:,:,:],axis=0)
             outputdata[field][:,:]+=wrfncfile_next.variables[field][0,:,:]
             outputdata[field][:,:]=outputdata[field][:,:]*ntime_recip
