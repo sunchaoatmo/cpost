@@ -139,6 +139,26 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
                          bottom_top_dim =bottom_top , 
                          south_north_dim=south_north,
                          west_east_dim=west_east,ntime=ntime)
+    elif taskname=="tpw":
+      tpw_l=np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
+      tpw_m=np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
+      tpw_h=np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
+      for itime in range(ntime):
+        p    =wrf_o.variables['P'][itime,:,:,:]
+        pres =p+pb
+        qv   =wrf_o.variables['QVAPOR'][itime,:,:,:]
+        psfc =wrf_o.variables['PSFC'][itime,:,:]
+        arwpost.calc_tpw(pres=pres,qv=qv,psfc=psfc,
+                         tpw_h=tpw_h,
+                         tpw_m=tpw_m,
+                         tpw_l=tpw_l,
+                         itime=itime,
+                         bottom_top_dim =bottom_top , 
+                         south_north_dim=south_north,
+                         west_east_dim=west_east,ntime=ntime)
+        
+
+
 
 
     for field in fields:
@@ -162,13 +182,19 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
         metfield=cldfra_total
       elif field=="slp":
         metfield=slp
+      elif field=="tpw_l":
+        metfield=tpw_l
+      elif field=="tpw_h":
+        metfield=tpw_h
+      elif field=="tpw_m":
+        metfield=tpw_m
       elif field=="WIN_10":
         continue 
       else:
         metfield=wrf_o.variables[field]
       if outputdim==3:
         if compute_mode==1:
-          if field not in ["CAPE","CIN","RH","u_10","v_10","cldfra_low","cldfra_mid","cldfra_high","cldfra_total","slp"]:
+          if field not in ["CAPE","CIN","RH","u_10","v_10","cldfra_low","cldfra_mid","cldfra_high","cldfra_total","slp","tpw_l","tpw_m","tpw_h"]:
             outputdata[field][:,:]=np.sum(metfield[1:,:,:],axis=0)
             outputdata[field][:,:]+=wrfncfile_next.variables[field][0,:,:]
             outputdata[field][:,:]=outputdata[field][:,:]*ntime_recip

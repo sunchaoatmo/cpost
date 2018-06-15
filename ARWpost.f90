@@ -28,6 +28,11 @@ MODULE ARWpost
    real, parameter :: earth_circ_m = 2.*pi*earth_radius_m
 
    real, parameter :: g = 9.81
+   real, parameter :: g_rev     =1.0/g
+   real, parameter :: P_high    =440*100.0 ! This is for the MODIS data TPW
+                                           ! MOD08's data note in previou MODIS version this is 700
+   real, parameter :: P_low     =680*100.0 ! This is for the MODIS data TPW
+                                           ! MOD08's data note in previou MODIS version this is 920
    real, parameter :: rd = 287.04
    real, parameter :: rv = 461.6
    real, parameter :: rm = .608 
@@ -1953,13 +1958,11 @@ CONTAINS
   integer                                                        :: i, j, k
   integer                                                        :: klo, khi
   real                                                           :: plo, phi, tlo, thi, zlo, zhi
-  real                                                           :: g_rev
   real                                                           :: p_at_pconst, t_at_pconst, z_at_pconst
   real                                                           :: z_half_lowest
   logical                                                        :: l1, l2, l3, found
 
 
-  g_rev     =1.0/g
   !p_tmp    = PRES                  ! Pressure in Pa
   !z        = GEOPT/G
   !temp     = TK                    ! Temp in K
@@ -2066,6 +2069,57 @@ CONTAINS
 
 
   END SUBROUTINE calc_slp
+
+!-----------------------------------------------------------------------
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!-----------------------------------------------------------------------
+  SUBROUTINE calc_tpw(pres,psfc,qv, &
+                      tpw_h, &
+                      tpw_m, &
+                      tpw_l, &
+                      itime,ntime         , &
+                      bottom_top_dim, south_north_dim , west_east_dim)
+    !Arguments
+    integer, intent(in)               :: bottom_top_dim,south_north_dim,west_east_dim
+    integer, intent(in)               :: itime,ntime
+    real, dimension(bottom_top_dim,south_north_dim,west_east_dim),intent(in)   :: &
+                                      PRES,QV
+    real, dimension(south_north_dim,west_east_dim),intent(in)   :: PSFC
+
+    real, dimension(ntime         ,south_north_dim,west_east_dim),intent(inout):: tpw_h
+    real, dimension(ntime         ,south_north_dim,west_east_dim),intent(inout):: tpw_l
+    real, dimension(ntime         ,south_north_dim,west_east_dim),intent(inout):: tpw_m
+
+    !Local
+    real, dimension(bottom_top_dim+1)                 :: p8w
+    real                                              :: pdel
+    integer                                           :: i, j, k
+
+
+    tpw_h(itime+1,:,:)=0.0
+    tpw_m(itime+1,:,:)=0.0
+    tpw_l(itime+1,:,:)=0.0
+
+    DO j=1,west_east_dim
+      DO i=1,south_north_dim
+        p8w(1)=psfc(i,j)
+        DO k=1,bottom_top_dim
+           p8w(k+1)=2.0*pres(k,i,j)-p8w(k)
+        ENDDO
+        DO k=1,bottom_top_dim
+           pdel=p8w(k)-p8w(k+1)
+           if (pres(k,i,j)<P_high) then
+             tpw_h(itime+1,i,j) =tpw_h(itime+1,i,j)+pdel*qv(k,i,j)*g_rev
+           elseif (pres(k,i,j)>P_high.and. pres(k,i,j)<P_low) then
+             tpw_m(itime+1,i,j) =tpw_m(itime+1,i,j)+pdel*qv(k,i,j)*g_rev
+           else
+             tpw_l(itime+1,i,j) =tpw_l(itime+1,i,j)+pdel*qv(k,i,j)*g_rev
+           endif
+        ENDDO
+      END DO
+    END DO
+  END SUBROUTINE calc_tpw
+
 
 
 

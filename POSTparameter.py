@@ -186,6 +186,11 @@ var_parameters = {
                                 "CIN":{"units":"J/kg","description":"Convective Inhibition"} }} , 
 "slp"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None  ,"dim":3,
                        "fields":{ "slp":{"units":"Pa","description":"sea level pressure"} }} , 
+"tpw"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None  ,"dim":3,
+                       "fields":{ "tpw_l":{"units":"Kg","description":"totol precipitable water Surface to 680mb"} 
+                                 ,"tpw_m":{"units":"Kg","description":"totol precipitable water 680 to 440 mb"} 
+                                 ,"tpw_h":{"units":"Kg","description":"totol precipitable water 440 to model top"} 
+                         }} , 
 "cldfrag"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None  ,"dim":3,
                        "fields":{
                                "cldfra_total":{"units":"unitless","description":"total cloud"}, 
