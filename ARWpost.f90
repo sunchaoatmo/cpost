@@ -2195,8 +2195,156 @@ CONTAINS
   END SUBROUTINE calc_iwp
 
 
+SUBROUTINE wrfcttcalc(prs, tk, qci, qcw, qvp, ght, ter, ctt,  haveqci,&
+             itime,ntime         , &
+             fill_nocloud, missing, opt_thresh, nz, ns, ew)
+
+    IMPLICIT NONE
+
+    REAL(KIND=8), PARAMETER :: USSALR = 0.0065D0  ! deg C per m
+    REAL(KIND=8), PARAMETER :: ABSCOEFI = .272D0  ! cloud ice absorption coefficient in m^2/g
+    REAL(KIND=8), PARAMETER :: ABSCOEF = .145D0   ! cloud water absorption coefficient in m^2/g
+    !f2py intent(in,out) :: ctt
+
+    INTEGER, INTENT(IN)               :: itime,ntime
+    INTEGER, INTENT(IN) :: nz, ns, ew, haveqci, fill_nocloud
+    REAL, DIMENSION(nz,ns,ew), INTENT(IN) :: ght, prs, tk, qci, qcw, qvp
+    REAL, DIMENSION(ns,ew), INTENT(IN) :: ter
+    REAL, DIMENSION(ntime,ns,ew), INTENT(INOUT) :: ctt
+    REAL, INTENT(IN) :: missing
+    REAL, INTENT(IN) :: opt_thresh
 
 
+!NCLEND
+
+    !     REAL(KIND=8) ::     znfac(nz)
+
+    ! LOCAL VARIABLES
+    REAL, DIMENSION(nz,ns,ew)                :: pf
+    INTEGER i,j,k,ripk
+    REAL(KIND=8) :: opdepthu, opdepthd, dp, arg1, fac, prsctt, ratmix
+    REAL(KIND=8) :: arg2, agl_hgt, vt
+
+    REAL(KIND=8) :: p1, p2
+
+
+    ! Calculate the surface pressure
+    DO i=1,ew
+      DO j=1,ns
+           ratmix = .001D0*qvp(1,j,i)
+           arg1 = EPS + ratmix
+           arg2 = EPS*(1. + ratmix)
+           vt = tk(1,j,i)*arg1/arg2 !Virtual temperature
+           agl_hgt = ght(nz,j,i) - ter(j,i)
+           arg1 = -G/(RD*USSALR)
+           pf(nz,j,i) = prs(1,j,i)*(vt/(vt + USSALR*(agl_hgt)))**(arg1)
+        END DO
+    END DO
+        DO i=1,ew
+            DO j=1,ns
+    DO k=1,nz-1
+                ripk = nz-k+1
+                pf(k,j,i) = .5D0*(prs(ripk,j,i) + prs(ripk-1,j,i))
+    END DO
+            END DO
+        END DO
+
+    DO i=1,ew
+        DO j=1,ns
+            opdepthd = 0.D0
+            k = 0
+            prsctt = -1
+
+            ! Integrate downward from model top, calculating path at full
+            ! model vertical levels.
+
+            DO k=2,nz
+                opdepthu = opdepthd
+                ripk = nz - k + 1
+
+                IF (k .NE. 1) THEN
+                    dp = 100.D0*(pf(k,j,i) - pf(k-1,j,i))  ! should be in Pa
+                ELSE
+                    dp = 200.D0*(pf(1,j,i) - prs(nz,j,i))  ! should be in Pa
+                END IF
+
+                IF (haveqci .EQ. 0) then
+                    IF (tk(ripk,j,i) .LT. CELKEL) then
+                        ! Note: abscoefi is m**2/g, qcw is g/kg, so no convrsion needed
+                        opdepthd = opdepthu + ABSCOEFI*qcw(ripk,j,i) * dp/G
+                    ELSE
+                        opdepthd = opdepthu + ABSCOEF*qcw(ripk,j,i) * dp/G
+                    END IF
+                ELSE
+                    opdepthd = opdepthd + (ABSCOEF*qcw(ripk,j,i) + ABSCOEFI*qci(ripk,j,i))*dp/G
+                END IF
+
+                IF (opdepthd .LT. opt_thresh .AND. k .LT. nz) THEN
+                    CYCLE
+
+                ELSE IF (opdepthd .LT. opt_thresh .AND. k .EQ. nz) THEN
+                    IF (fill_nocloud .EQ. 0) THEN
+                        prsctt = prs(1,j,i)
+                    ENDIF
+                    EXIT
+                ELSE
+                    fac = (1. - opdepthu)/(opdepthd - opdepthu)
+                    prsctt = pf(k-1,j,i) + fac*(pf(k,j,i) - pf(k-1,j,i))
+                    prsctt = MIN(prs(1,j,i), MAX(prs(nz,j,i), prsctt))
+                    EXIT
+                END IF
+            END DO
+
+            ! prsctt should only be 0 if fill values are used
+            IF (prsctt .GT. -1) THEN
+                DO k=2,nz
+                    ripk = nz - k + 1
+                    p1 = prs(ripk+1,j,i)
+                    p2 = prs(ripk,j,i)
+                    IF (prsctt .GE. p1 .AND. prsctt .LE. p2) THEN
+                        fac = (prsctt - p1)/(p2 - p1)
+                        arg1 = fac*(tk(ripk,j,i) - tk(ripk+1,j,i)) - CELKEL
+                        ctt(itime+1,j,i) = tk(ripk+1,j,i) + arg1
+                        if (ctt(itime+1,j,i)<-300) then
+                          print*,ctt(itime+1,j,i)
+                          print*,fac,prsctt,p1,p2,tk(ripk,j,i),tk(ripk+1,j,i)
+                          stop
+                        endif
+                        EXIT
+                    END IF
+                END DO
+            ELSE
+                ctt(itime+1,j,i) = missing
+            END IF
+        END DO
+    END DO
+    RETURN
+
+END SUBROUTINE wrfcttcalc
+SUBROUTINE aveexceptmissing( met_3d,  met_2d,missing,&
+                              nz, ns, ew)
+
+    INTEGER, INTENT(IN) :: nz, ns, ew
+    REAL, DIMENSION(nz,ns,ew), INTENT(IN) :: met_3d
+    REAL, DIMENSION(ns,ew), INTENT(OUT) :: met_2d
+    REAL, INTENT(IN) :: missing
+    INTEGER i,j,k,validpoint
+
+    DO i=1,ew
+      DO j=1,ns
+        validpoint =0
+        DO k=1,nz
+          if (abs(met_3d(k,j,i)-missing).ge.epsilon0) then
+            met_2d(j,i)=met_2d(j,i)+met_3d(k,j,i)
+            validpoint =validpoint+1
+          endif
+
+        END DO
+        met_2d(j,i)=met_2d(j,i)/validpoint
+      END DO
+    END DO
+
+END SUBROUTINE aveexceptmissing
 
 
 END MODULE ARWpost

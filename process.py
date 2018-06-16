@@ -3,11 +3,12 @@ import numpy as np
 def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
                outputdim,z_levs,number_of_zlevs,compute_mode,
                wrfncfile_last,wrfncfile_next):
-  from constant import RCP,p0,G,Rd,EPS
+  from constant import RCP,p0,G,Rd,EPS,missing,fill_nocloud,opt_thresh
   from ARWpost import arwpost
   import time
   pb   =wrf_i.variables['PB'][0,:,:,:]
   phb  =wrf_i.variables['PHB'][0,:,:,:]
+  hgt  =wrf_i.variables['HGT'][0,:,:]
   ntime       =wrf_o.dimensions['Time'].size
   ntime_recip =1.0/float(ntime)
   south_north =wrf_o.dimensions['south_north'].size
@@ -17,7 +18,6 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
     cosalpha = wrf_i.variables['COSALPHA'][0]
     sinalpha = wrf_i.variables['SINALPHA'][0]
   if vert_intp=="p":
-    hgt  =wrf_i.variables['HGT'][0,:,:]
     tk   =None
     geopt=None
     qv   =None
@@ -86,7 +86,6 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
     if taskname=="conv":
       cape=np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
       cin =np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
-      hgt  =wrf_i.variables['HGT'][0,:,:]
       for itime in range(ntime):
         p    =wrf_o.variables['P'][itime,:,:,:]
         pres =p+pb
@@ -185,11 +184,39 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
                          bottom_top_dim =bottom_top , 
                          south_north_dim=south_north,
                          west_east_dim=west_east,ntime=ntime)
+    elif taskname=="ctt":
+      ctt=np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
+      for itime in range(ntime):
+        p    =wrf_o.variables['P'][itime,:,:,:]
+        pres =p+pb
+        t  =wrf_o.variables['T'][itime,:,:,:]
+        tk = (t+300.) * ( pres / p0 )**RCP
+        qc   =wrf_o.variables['QCLOUD'][itime,:,:,:]
+        qcw  =qc*1000
+        qv   =wrf_o.variables['QVAPOR'][itime,:,:,:]
+        qvp  =qv*1000
+        try:
+          qi   =wrf_o.variables['QICE'][itime,:,:,:]
+          qice =qi*1000
+          haveqci=1
+        except:
+          haveqci=0
+          qice =np.zeros(qv.shape, qv.dtype)
+        ph   =wrf_o.variables['PH'][itime,:,:,:]
+        geopt_w=ph+phb
+        geopt=(geopt_w[1:,:,:]+geopt_w[:-1,:,:])*0.5
+        ght  =geopt/9.8
+
+        arwpost.wrfcttcalc(prs=pres,tk=tk,qci=qice,qcw=qcw,qvp=qvp,ght=ght,ter=hgt,ctt=ctt,
+                         haveqci=haveqci,
+                         fill_nocloud=fill_nocloud,
+                         missing=missing,
+                         opt_thresh=opt_thresh,
+                         itime=itime,
+                         nz =bottom_top , 
+                         ns =south_north,
+                         ew =west_east,ntime=ntime)
  
-        
-
-
-
 
     for field in fields:
       if field=="CAPE":
@@ -222,13 +249,22 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
         metfield=lwp
       elif field=="iwp":
         metfield=iwp
+      elif field=="ctt":
+        metfield=ctt
       elif field=="WIN_10":
         continue 
       else:
         metfield=wrf_o.variables[field]
       if outputdim==3:
         if compute_mode==1:
-          if field not in ["CAPE","CIN","RH","u_10","v_10","cldfra_low","cldfra_mid","cldfra_high","cldfra_total","slp","tpw_l","tpw_m","tpw_h","lwp","iwp"]:
+          if field == "ctt":
+            outputdata[field][:,:]=arwpost.aveexceptmissing(
+                         met_3d=metfield,
+                         missing=missing,
+                         nz =ntime , 
+                         ns =south_north,
+                         ew =west_east)
+          elif field not in ["CAPE","CIN","RH","u_10","v_10","cldfra_low","cldfra_mid","cldfra_high","cldfra_total","slp","tpw_l","tpw_m","tpw_h","lwp","iwp"]:
             outputdata[field][:,:]=np.sum(metfield[1:,:,:],axis=0)
             outputdata[field][:,:]+=wrfncfile_next.variables[field][0,:,:]
             outputdata[field][:,:]=outputdata[field][:,:]*ntime_recip

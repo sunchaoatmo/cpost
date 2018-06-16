@@ -190,6 +190,8 @@ var_parameters = {
                        "fields":{ "lwp":{"units":"Kg","description":"liquid water path"} }} , 
 "iwp"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None  ,"dim":3,
                        "fields":{ "iwp":{"units":"Kg","description":"ice water path"} }} , 
+"ctt"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None  ,"dim":3,
+                       "fields":{ "ctt":{"units":"C","description":"Cloud top temperature"} }} , 
 "tpw"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None  ,"dim":3,
                        "fields":{ "tpw_l":{"units":"Kg","description":"totol precipitable water Surface to 680mb"} 
                                  ,"tpw_m":{"units":"Kg","description":"totol precipitable water 680 to 440 mb"} 
