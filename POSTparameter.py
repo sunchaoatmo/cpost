@@ -193,9 +193,9 @@ var_parameters = {
 "ctt"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None  ,"dim":3,
                        "fields":{ "ctt":{"units":"C","description":"Cloud top temperature"} }} , 
 "tpw"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None  ,"dim":3,
-                       "fields":{ "tpw_l":{"units":"Kg","description":"totol precipitable water Surface to 680mb"} 
-                                 ,"tpw_m":{"units":"Kg","description":"totol precipitable water 680 to 440 mb"} 
-                                 ,"tpw_h":{"units":"Kg","description":"totol precipitable water 440 to model top"} 
+                       "fields":{ "tpw_l":{"units":"cm","description":"totol precipitable water Surface to 680mb"} 
+                                 ,"tpw_m":{"units":"cm","description":"totol precipitable water 680 to 440 mb"} 
+                                 ,"tpw_h":{"units":"cm","description":"totol precipitable water 440 to model top"} 
                          }} , 
 "cldfrag"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None  ,"dim":3,
                        "fields":{

@@ -192,12 +192,13 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
         t  =wrf_o.variables['T'][itime,:,:,:]
         tk = (t+300.) * ( pres / p0 )**RCP
         qc   =wrf_o.variables['QCLOUD'][itime,:,:,:]
-        qcw  =qc*1000
+        qcw  =qc *1000
         qv   =wrf_o.variables['QVAPOR'][itime,:,:,:]
-        qvp  =qv*1000
+        qvp  =qv *1000
+        pres_hpa =pres*0.01 # convert to hpa for the ctt
         try:
           qi   =wrf_o.variables['QICE'][itime,:,:,:]
-          qice =qi*1000
+          qice =qi *1000
           haveqci=1
         except:
           haveqci=0
@@ -207,7 +208,7 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
         geopt=(geopt_w[1:,:,:]+geopt_w[:-1,:,:])*0.5
         ght  =geopt/9.8
 
-        arwpost.wrfcttcalc(prs=pres,tk=tk,qci=qice,qcw=qcw,qvp=qvp,ght=ght,ter=hgt,ctt=ctt,
+        arwpost.wrfcttcalc(prs=pres_hpa,tk=tk,qci=qice,qcw=qcw,qvp=qvp,ght=ght,ter=hgt,ctt=ctt,
                          haveqci=haveqci,
                          fill_nocloud=fill_nocloud,
                          missing=missing,
@@ -240,11 +241,11 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
       elif field=="slp":
         metfield=slp
       elif field=="tpw_l":
-        metfield=tpw_l
+        metfield=tpw_l*0.1 #convert to cm
       elif field=="tpw_h":
-        metfield=tpw_h
+        metfield=tpw_h*0.1 # convert to cm
       elif field=="tpw_m":
-        metfield=tpw_m
+        metfield=tpw_m*0.1 # convert to cm
       elif field=="lwp":
         metfield=lwp
       elif field=="iwp":
