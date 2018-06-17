@@ -2305,11 +2305,6 @@ SUBROUTINE wrfcttcalc(prs, tk, qci, qcw, qvp, ght, ter, ctt,  haveqci,&
                         fac = (prsctt - p1)/(p2 - p1)
                         arg1 = fac*(tk(ripk,j,i) - tk(ripk+1,j,i)) - CELKEL
                         ctt(itime+1,j,i) = tk(ripk+1,j,i) + arg1
-                        if (ctt(itime+1,j,i)<-300) then
-                          print*,ctt(itime+1,j,i)
-                          print*,fac,prsctt,p1,p2,tk(ripk,j,i),tk(ripk+1,j,i)
-                          stop
-                        endif
                         EXIT
                     END IF
                 END DO
@@ -2340,7 +2335,11 @@ SUBROUTINE aveexceptmissing( met_3d,  met_2d,missing,&
           endif
 
         END DO
-        met_2d(j,i)=met_2d(j,i)/validpoint
+        if (validpoint>0) then
+          met_2d(j,i)=met_2d(j,i)/validpoint
+        else
+          met_2d(j,i)=missing
+        endif
       END DO
     END DO
 
