@@ -2195,7 +2195,7 @@ CONTAINS
   END SUBROUTINE calc_iwp
 
 
-SUBROUTINE wrfcttcalc(prs, tk, qci, qcw, qvp, ght, ter, ctt,  haveqci,&
+SUBROUTINE wrfcttcalc(prs, tk, qci, qcw, qvp, ght, ter, ctt,cth,  haveqci,&
              itime,ntime         , &
              fill_nocloud, missing, opt_thresh, nz, ns, ew)
 
@@ -2204,13 +2204,15 @@ SUBROUTINE wrfcttcalc(prs, tk, qci, qcw, qvp, ght, ter, ctt,  haveqci,&
     REAL(KIND=8), PARAMETER :: USSALR = 0.0065D0  ! deg C per m
     REAL(KIND=8), PARAMETER :: ABSCOEFI = .272D0  ! cloud ice absorption coefficient in m^2/g
     REAL(KIND=8), PARAMETER :: ABSCOEF = .145D0   ! cloud water absorption coefficient in m^2/g
-    !f2py intent(in,out) :: ctt
 
     INTEGER, INTENT(IN)               :: itime,ntime
     INTEGER, INTENT(IN) :: nz, ns, ew, haveqci, fill_nocloud
     REAL, DIMENSION(nz,ns,ew), INTENT(IN) :: ght, prs, tk, qci, qcw, qvp
     REAL, DIMENSION(ns,ew), INTENT(IN) :: ter
     REAL, DIMENSION(ntime,ns,ew), INTENT(INOUT) :: ctt
+    REAL, DIMENSION(ntime,ns,ew), INTENT(INOUT) :: cth
+    !f2py intent(in,out) :: ctt
+    !f2py intent(in,out) :: cth
     REAL, INTENT(IN) :: missing
     REAL, INTENT(IN) :: opt_thresh
 
@@ -2303,13 +2305,18 @@ SUBROUTINE wrfcttcalc(prs, tk, qci, qcw, qvp, ght, ter, ctt,  haveqci,&
                     p2 = prs(ripk,j,i)
                     IF (prsctt .GE. p1 .AND. prsctt .LE. p2) THEN
                         fac = (prsctt - p1)/(p2 - p1)
-                        arg1 = fac*(tk(ripk,j,i) - tk(ripk+1,j,i)) - CELKEL
+                        arg1 = fac*(tk(ripk,j,i) - tk(ripk+1,j,i)) !- CELKEL use K
                         ctt(itime+1,j,i) = tk(ripk+1,j,i) + arg1
+
+                        arg1 = fac*(ght(ripk,j,i) - ght(ripk+1,j,i)) 
+                        cth(itime+1,j,i) = ght(ripk+1,j,i) + arg1
+                        cth(itime+1,j,i) = cth(itime+1,j,i) - ter(j,i)
                         EXIT
                     END IF
                 END DO
             ELSE
                 ctt(itime+1,j,i) = missing
+                cth(itime+1,j,i) = missing
             END IF
         END DO
     END DO

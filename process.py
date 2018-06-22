@@ -184,8 +184,9 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
                          bottom_top_dim =bottom_top , 
                          south_north_dim=south_north,
                          west_east_dim=west_east,ntime=ntime)
-    elif taskname=="ctt":
+    elif taskname=="cto":
       ctt=np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
+      cth=np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
       for itime in range(ntime):
         p    =wrf_o.variables['P'][itime,:,:,:]
         pres =p+pb
@@ -208,7 +209,9 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
         geopt=(geopt_w[1:,:,:]+geopt_w[:-1,:,:])*0.5
         ght  =geopt/9.8
 
-        arwpost.wrfcttcalc(prs=pres_hpa,tk=tk,qci=qice,qcw=qcw,qvp=qvp,ght=ght,ter=hgt,ctt=ctt,
+        arwpost.wrfcttcalc(prs=pres_hpa,tk=tk,qci=qice,qcw=qcw,qvp=qvp,ght=ght,ter=hgt,
+                         ctt=ctt,
+                         cth=cth,
                          haveqci=haveqci,
                          fill_nocloud=fill_nocloud,
                          missing=missing,
@@ -252,13 +255,15 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
         metfield=iwp
       elif field=="ctt":
         metfield=ctt
+      elif field=="cth":
+        metfield=cth
       elif field=="WIN_10":
         continue 
       else:
         metfield=wrf_o.variables[field]
       if outputdim==3:
         if compute_mode==1:
-          if field == "ctt":
+          if field in ["ctt","cth"]:
             outputdata[field][:,:]=arwpost.aveexceptmissing(
                          met_3d=metfield,
                          missing=missing,
