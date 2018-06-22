@@ -38,7 +38,7 @@ def createnc(filename,vname,periods,units,calendar,fields,nx,ny,nz=None):
   else:
     nc_dim=("time","south_north","west_east",)
   for field in fields:
-    rootgrp.createVariable(field,"f4",nc_dim)
+    rootgrp.createVariable(field,"f4",nc_dim,fill_value=-999)
   return rootgrp 
 
 

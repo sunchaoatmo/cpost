@@ -1,7 +1,7 @@
 seasonList=[ [12,  2], [3, 5], [6,  8], [9,  11]]
 opt_thresh=1.0
 fill_nocloud=1
-missing     =-9999
+missing     =-999
 monthlyList=[ [1, 1],[2,2],[3,3],[4,4],[5,5],[6, 6],[7, 7],[8,8], [9, 9 ],[10, 10],[11,11],[12,12]]
 mmstommday=24.0*60.*60.
 wrfout_data_fmt="%Y-%m-%d"
