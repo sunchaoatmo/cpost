@@ -273,7 +273,7 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
                          nz =ntime , 
                          ns =south_north,
                          ew =west_east)
-          elif field not in ["CAPE","CIN","RH","u_10","v_10","cldfra_low","cldfra_mid","cldfra_high","cldfra_total","slp","tpw_l","tpw_m","tpw_h","lwp","iwp"]:
+          elif field not in ["CAPE","CIN","RH","u_10","v_10","cldfra_low","cldfra_mid","cldfra_high","cldfra_total","slp","tpw_l","tpw_m","tpw_h","lwp","iwp","ALBEDO"]:
             outputdata[field][:,:]=np.sum(metfield[1:,:,:],axis=0)
             outputdata[field][:,:]+=wrfncfile_next.variables[field][0,:,:]
             outputdata[field][:,:]=outputdata[field][:,:]*ntime_recip
