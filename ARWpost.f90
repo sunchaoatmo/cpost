@@ -2195,7 +2195,7 @@ CONTAINS
   END SUBROUTINE calc_iwp
 
 
-SUBROUTINE wrfcttcalc(prs, tk, qci, qcw, qvp, ght, ter, ctt,cth,  haveqci,&
+SUBROUTINE wrfcttcalc(prs, tk, qci, qcw, qvp, ght, ter, psfc,ctt,cth,  haveqci,&
              itime,ntime         , &
              fill_nocloud, missing, opt_thresh, nz, ns, ew)
 
@@ -2209,6 +2209,7 @@ SUBROUTINE wrfcttcalc(prs, tk, qci, qcw, qvp, ght, ter, ctt,cth,  haveqci,&
     INTEGER, INTENT(IN) :: nz, ns, ew, haveqci, fill_nocloud
     REAL, DIMENSION(nz,ns,ew), INTENT(IN) :: ght, prs, tk, qci, qcw, qvp
     REAL, DIMENSION(ns,ew), INTENT(IN) :: ter
+    REAL, DIMENSION(ns,ew), INTENT(IN) :: psfc
     REAL, DIMENSION(ntime,ns,ew), INTENT(INOUT) :: ctt
     REAL, DIMENSION(ntime,ns,ew), INTENT(INOUT) :: cth
     !f2py intent(in,out) :: ctt
@@ -2222,7 +2223,8 @@ SUBROUTINE wrfcttcalc(prs, tk, qci, qcw, qvp, ght, ter, ctt,cth,  haveqci,&
     !     REAL(KIND=8) ::     znfac(nz)
 
     ! LOCAL VARIABLES
-    REAL, DIMENSION(nz,ns,ew)                :: pf
+    REAL, DIMENSION(nz+1,ns,ew)                :: pf
+    REAL, DIMENSION(nz+1)                    :: p8w
     INTEGER i,j,k,ripk
     REAL(KIND=8) :: opdepthu, opdepthd, dp, arg1, fac, prsctt, ratmix
     REAL(KIND=8) :: arg2, agl_hgt, vt
@@ -2231,25 +2233,26 @@ SUBROUTINE wrfcttcalc(prs, tk, qci, qcw, qvp, ght, ter, ctt,cth,  haveqci,&
 
 
     ! Calculate the surface pressure
-    DO i=1,ew
-      DO j=1,ns
-           ratmix = .001D0*qvp(1,j,i)
-           arg1 = EPS + ratmix
-           arg2 = EPS*(1. + ratmix)
-           vt = tk(1,j,i)*arg1/arg2 !Virtual temperature
-           agl_hgt = ght(nz,j,i) - ter(j,i)
-           arg1 = -G/(RD*USSALR)
-           pf(nz,j,i) = prs(1,j,i)*(vt/(vt + USSALR*(agl_hgt)))**(arg1)
-        END DO
-    END DO
-        DO i=1,ew
-            DO j=1,ns
-    DO k=1,nz-1
-                ripk = nz-k+1
-                pf(k,j,i) = .5D0*(prs(ripk,j,i) + prs(ripk-1,j,i))
-    END DO
-            END DO
-        END DO
+!    DO i=1,ew
+!      DO j=1,ns
+!           ratmix = .001D0*qvp(1,j,i)
+!           arg1 = EPS + ratmix
+!           arg2 = EPS*(1. + ratmix)
+!           vt = tk(1,j,i)*arg1/arg2 !Virtual temperature
+!           agl_hgt = ght(nz,j,i) - ter(j,i)
+!           arg1 = -G/(RD*USSALR)
+!           pf(nz,j,i) = prs(1,j,i)*(vt/(vt + USSALR*(agl_hgt)))**(arg1)
+!        END DO
+!    END DO
+!   DO i=1,ew
+!       DO j=1,ns
+!           DO k=1,nz-1
+!               ripk = nz-k+1
+!               pf(k,j,i) = .5D0*(prs(ripk,j,i) + prs(ripk-1,j,i))
+!           END DO
+!       END DO
+!   END DO
+
 
     DO i=1,ew
         DO j=1,ns
@@ -2259,26 +2262,24 @@ SUBROUTINE wrfcttcalc(prs, tk, qci, qcw, qvp, ght, ter, ctt,cth,  haveqci,&
 
             ! Integrate downward from model top, calculating path at full
             ! model vertical levels.
+            pf(1,j,i)=psfc(j,i)
+            DO k=1,nz
+               pf(k+1,j,i)=2.0*prs(k,j,i)-pf(k,j,i)
+            ENDDO
 
-            DO k=2,nz
+            DO k=1,nz
                 opdepthu = opdepthd
-                ripk = nz - k + 1
-
-                IF (k .NE. 1) THEN
-                    dp = 100.D0*(pf(k,j,i) - pf(k-1,j,i))  ! should be in Pa
-                ELSE
-                    dp = 200.D0*(pf(1,j,i) - prs(nz,j,i))  ! should be in Pa
-                END IF
+                dp=pf(k,j,i)-pf(k+1,j,i)
 
                 IF (haveqci .EQ. 0) then
-                    IF (tk(ripk,j,i) .LT. CELKEL) then
+                    IF (tk(k,j,i) .LT. CELKEL) then
                         ! Note: abscoefi is m**2/g, qcw is g/kg, so no convrsion needed
-                        opdepthd = opdepthu + ABSCOEFI*qcw(ripk,j,i) * dp/G
+                        opdepthd = opdepthu + ABSCOEFI*qci(k,j,i) * dp/G
                     ELSE
-                        opdepthd = opdepthu + ABSCOEF*qcw(ripk,j,i) * dp/G
+                        opdepthd = opdepthu + ABSCOEF*qcw(k,j,i) * dp/G
                     END IF
                 ELSE
-                    opdepthd = opdepthd + (ABSCOEF*qcw(ripk,j,i) + ABSCOEFI*qci(ripk,j,i))*dp/G
+                    opdepthd = opdepthd + (ABSCOEF*qcw(k,j,i) + ABSCOEFI*qci(k,j,i))*dp/G
                 END IF
 
                 IF (opdepthd .LT. opt_thresh .AND. k .LT. nz) THEN
@@ -2291,26 +2292,28 @@ SUBROUTINE wrfcttcalc(prs, tk, qci, qcw, qvp, ght, ter, ctt,cth,  haveqci,&
                     EXIT
                 ELSE
                     fac = (1. - opdepthu)/(opdepthd - opdepthu)
-                    prsctt = pf(k-1,j,i) + fac*(pf(k,j,i) - pf(k-1,j,i))
-                    prsctt = MIN(prs(1,j,i), MAX(prs(nz,j,i), prsctt))
+                    !prsctt = prs(k+1,j,i) + fac*(prs(k,j,i) - prs(k+1,j,i))
+                    prsctt = prs(k,j,i) + fac*(prs(k+1,j,i) - prs(k,j,i))
+                    prsctt = MAX(prs(nz-1,j,i), MIN(prs(1,j,i), prsctt))
+
                     EXIT
                 END IF
             END DO
 
             ! prsctt should only be 0 if fill values are used
             IF (prsctt .GT. -1) THEN
-                DO k=2,nz
-                    ripk = nz - k + 1
-                    p1 = prs(ripk+1,j,i)
-                    p2 = prs(ripk,j,i)
-                    IF (prsctt .GE. p1 .AND. prsctt .LE. p2) THEN
-                        fac = (prsctt - p1)/(p2 - p1)
-                        arg1 = fac*(tk(ripk,j,i) - tk(ripk+1,j,i)) !- CELKEL use K
-                        ctt(itime+1,j,i) = tk(ripk+1,j,i) + arg1
-
-                        arg1 = fac*(ght(ripk,j,i) - ght(ripk+1,j,i)) 
-                        cth(itime+1,j,i) = ght(ripk+1,j,i) + arg1
+                DO k=1,nz-1
+                    p1 = prs(k,j,i)
+                    p2 = prs(k+1,j,i)
+                    IF (prsctt .GE. p2 .AND. prsctt .LE. p1) THEN
+                        fac = (prsctt - p2)/(p1 - p2)
+                        arg1 = fac*(tk(k,j,i) - tk(k+1,j,i)) !- CELKEL use K
+                        ctt(itime+1,j,i) = tk(k+1,j,i) + arg1
+                        arg1 = fac*(ght(k,j,i) - ght(k+1,j,i)) 
+                        cth(itime+1,j,i) = ght(k+1,j,i) + arg1
                         cth(itime+1,j,i) = cth(itime+1,j,i) - ter(j,i)
+                        !print*,j,i,p1,p2,fac,tk(k+1,j,i),arg1,k,nz
+                        !stop
                         EXIT
                     END IF
                 END DO
@@ -2323,6 +2326,7 @@ SUBROUTINE wrfcttcalc(prs, tk, qci, qcw, qvp, ght, ter, ctt,cth,  haveqci,&
     RETURN
 
 END SUBROUTINE wrfcttcalc
+
 SUBROUTINE aveexceptmissing( met_3d,  met_2d,missing,&
                               nz, ns, ew)
 
@@ -2352,5 +2356,115 @@ SUBROUTINE aveexceptmissing( met_3d,  met_2d,missing,&
 
 END SUBROUTINE aveexceptmissing
 
+
+
+
+subroutine ericttcalc( tk, qci, qcw, qvp,  psfc,ctt,  haveqci,&
+             a_interface,b_interface,a_model_alt,b_model_alt,&
+             fill_nocloud, missing, opt_thresh, nz, ns, ew)
+
+    IMPLICIT NONE
+
+    REAL(KIND=8), PARAMETER :: USSALR = 0.0065D0  ! deg C per m
+    REAL(KIND=8), PARAMETER :: ABSCOEFI = .272D0  ! cloud ice absorption coefficient in m^2/g
+    REAL(KIND=8), PARAMETER :: ABSCOEF = .145D0   ! cloud water absorption coefficient in m^2/g
+    INTEGER, INTENT(IN) :: nz, ns, ew, haveqci, fill_nocloud
+    REAL, DIMENSION(nz,ns,ew), INTENT(IN) ::  tk, qci, qcw, qvp
+    REAL, DIMENSION(nz      ), INTENT(IN) :: a_model_alt,b_model_alt
+    REAL, DIMENSION(nz+1    ), INTENT(IN) :: a_interface,b_interface
+    REAL, DIMENSION(ns,ew), INTENT(IN) :: psfc
+    REAL, DIMENSION(ns,ew), INTENT(INOUT) :: ctt
+    !f2py intent(in,out) :: ctt
+    REAL, INTENT(IN) :: missing
+    REAL, INTENT(IN) :: opt_thresh
+
+
+!NCLEND
+
+    !     REAL(KIND=8) ::     znfac(nz)
+
+    ! LOCAL VARIABLES
+    REAL, DIMENSION(nz+1,ns,ew)              :: pf
+    REAL, DIMENSION(nz,ns,ew)                :: prs
+    INTEGER i,j,k,ripk
+    REAL(KIND=8) :: opdepthu, opdepthd, dp, arg1, fac, prsctt, ratmix
+    REAL(KIND=8) :: arg2, agl_hgt, vt
+
+    REAL(KIND=8) :: p1, p2
+
+
+    ! Calculate the  pressure
+    DO i=1,ew
+        DO j=1,ns
+            DO k=1,nz
+                pf(nz-k+2,j,i) = a_interface(k)+b_interface(k)*psfc(j,i)
+                prs(nz-k+1,j,i) = a_model_alt(k)+b_model_alt(k)*psfc(j,i)
+            END DO
+            k=nz+1
+            pf(1,j,i) = a_interface(k)+b_interface(k)*psfc(j,i)
+        END DO
+    END DO
+
+
+    DO i=1,ew
+        DO j=1,ns
+            opdepthd = 0.D0
+            k = 0
+            prsctt = -1
+
+
+            DO k=1,nz
+                opdepthu = opdepthd
+                dp=pf(k,j,i)-pf(k+1,j,i)
+
+                IF (haveqci .EQ. 0) then
+                    IF (tk(k,j,i) .LT. CELKEL) then
+                        ! Note: abscoefi is m**2/g, qcw is g/kg, so no convrsion needed
+                        opdepthd = opdepthu + ABSCOEFI*qci(k,j,i) * dp/G
+                    ELSE
+                        opdepthd = opdepthu + ABSCOEF*qcw(k,j,i) * dp/G
+                    END IF
+                ELSE
+                    opdepthd = opdepthd + (ABSCOEF*qcw(k,j,i) + ABSCOEFI*qci(k,j,i))*dp/G
+                END IF
+
+                IF (opdepthd .LT. opt_thresh .AND. k .LT. nz) THEN
+                    CYCLE
+
+                ELSE IF (opdepthd .LT. opt_thresh .AND. k .EQ. nz) THEN
+                    IF (fill_nocloud .EQ. 0) THEN
+                        prsctt = prs(1,j,i)
+                    ENDIF
+                    EXIT
+                ELSE
+                    fac = (1. - opdepthu)/(opdepthd - opdepthu)
+                    prsctt = prs(k,j,i) + fac*(prs(k+1,j,i) - prs(k,j,i))
+                    prsctt = MAX(prs(nz-1,j,i), MIN(prs(1,j,i), prsctt))
+                    EXIT
+                END IF
+            END DO
+
+            ! prsctt should only be 0 if fill values are used
+            IF (prsctt .GT. -1) THEN
+                DO k=1,nz-1
+                    p1 = prs(k,j,i)
+                    p2 = prs(k+1,j,i)
+                    IF (prsctt .GE. p2 .AND. prsctt .LE. p1) THEN
+                        fac = (prsctt - p2)/(p1 - p2)
+                        arg1 = fac*(tk(k,j,i) - tk(k+1,j,i)) !- CELKEL use K
+                        ctt(j,i) = tk(k+1,j,i) + arg1
+                        !print*,j,i,p1,p2,fac,tk(k+1,j,i),arg1,k,nz
+                        !stop
+                        EXIT
+                    END IF
+                END DO
+            ELSE
+                ctt(j,i) = missing
+            END IF
+        END DO
+    END DO
+    RETURN
+
+END SUBROUTINE ericttcalc
 
 END MODULE ARWpost

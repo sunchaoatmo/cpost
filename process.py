@@ -197,6 +197,8 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
         qv   =wrf_o.variables['QVAPOR'][itime,:,:,:]
         qvp  =qv *1000
         pres_hpa =pres*0.01 # convert to hpa for the ctt
+        psfc =wrf_o.variables['PSFC'][itime,:,:]
+        psfc_hpa =psfc*0.01 # convert to hpa for the ctt
         try:
           qi   =wrf_o.variables['QICE'][itime,:,:,:]
           qice =qi *1000
@@ -209,7 +211,8 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
         geopt=(geopt_w[1:,:,:]+geopt_w[:-1,:,:])*0.5
         ght  =geopt/9.8
 
-        arwpost.wrfcttcalc(prs=pres_hpa,tk=tk,qci=qice,qcw=qcw,qvp=qvp,ght=ght,ter=hgt,
+        arwpost.wrfcttcalc(prs=pres,tk=tk,qci=qice,qcw=qcw,qvp=qvp,ght=ght,ter=hgt,
+                          psfc=psfc,
                          ctt=ctt,
                          cth=cth,
                          haveqci=haveqci,
