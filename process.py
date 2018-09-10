@@ -36,6 +36,20 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
         tk = (t+300.) * ( pres / p0 )**RCP
         theta = (t+300.)
 
+      if taskname=="rh3d":
+        if itime==0:
+          rh3d=np.zeros((bottom_top,south_north,west_east)) #,order='F',dtype=np.float32)
+        ph   =wrf_o.variables['PH'][itime,:,:,:]
+        psfc =wrf_o.variables['PSFC'][itime,:,:]
+        qv   =wrf_o.variables['QVAPOR'][itime,:,:,:]
+        geopt_w=ph+phb
+        geopt=(geopt_w[1:,:,:]+geopt_w[:-1,:,:])/2.0
+        t  =wrf_o.variables['T'][itime,:,:,:]
+        tk = (t+300.) * ( pres / p0 )**RCP
+        for ilevel in range(bottom_top):
+          rh3d[ilevel,:,:]    =arwpost.calc_rh( q2m=qv[ilevel,:,:],t2m=tk[ilevel,:,:],
+                                                psfc=pres[ilevel,:,:])
+
       if taskname=="omega":
         w  =wrf_o.variables['W'][itime,:,:,:]
         www= .5*(w[1:,:,:] + w[:-1,:,:])
@@ -61,6 +75,8 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
           (ntime,nz,ny,nx)=wrf_o.variables["V"].shape
         elif field=="omega":
           metfield=omega
+        elif field=="rh3d":
+          metfield=rh3d
 
         outputdata[field][:,:,:]+= arwpost.interp(
              cname=field                     , vertical_type=vert_intp         , 
@@ -273,7 +289,7 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
                          nz =ntime , 
                          ns =south_north,
                          ew =west_east)
-          elif field not in ["CAPE","CIN","RH","u_10","v_10","cldfra_low","cldfra_mid","cldfra_high","cldfra_total","slp","tpw_l","tpw_m","tpw_h","lwp","iwp","ALBEDO"]:
+          elif field not in ["CAPE","CIN","RH","u_10","v_10","cldfra_low","cldfra_mid","cldfra_high","cldfra_total","slp","tpw_l","tpw_m","tpw_h","lwp","iwp","ALBEDO","AODVIS","AODNIR"]:
             outputdata[field][:,:]=np.sum(metfield[1:,:,:],axis=0)
             outputdata[field][:,:]+=wrfncfile_next.variables[field][0,:,:]
             outputdata[field][:,:]=outputdata[field][:,:]*ntime_recip
