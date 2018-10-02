@@ -75,6 +75,11 @@ var_parameters = {
                        "fields":{"WIN_10":{"units":"m/s","description":" Wind Speed at 10m"},
                                 }
                      },
+"xsmtg"            : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"dim":4,
+                       "nlev":4,
+                       "fields":{"xsmtg":{"units":"g","description":" grouped SM"},
+                                }
+                     },
 #"T2MIN"            : { "compute_mode" : 9  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"T2MIN":None}} , 
 "RAINC"            : { "compute_mode" : 6  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"RAINC":None}} , 
 "RAINNC"           : { "compute_mode" : 6  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"RAINNC":None}} , 
@@ -117,6 +122,7 @@ var_parameters = {
 "BR"               : { "compute_mode" : 1  , "shiftday" :  0 , "vert_intp" : None ,"fields":{"BR":None}} , 
 "POTEVP"           : { "compute_mode" : 5  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"POTEVP":None}} , 
 "SFROFF"           : { "compute_mode" : 5  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"SFROFF":None}} , 
+"XRNOF"           : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"XRNOF":None}} , 
 "UDROFF"           : { "compute_mode" : 5  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"UDROFF":None}} , 
 "SNOW"             : { "compute_mode" : 1  , "shiftday" :  0 , "vert_intp" : None ,"fields":{"SNOW":None}} , 
 "SNOWFALL"         : { "compute_mode" : 12 , "shiftday" :  0 , "vert_intp" : None ,"fields":{"SNOWFALL":None}} , 
