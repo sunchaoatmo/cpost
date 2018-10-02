@@ -2488,4 +2488,200 @@ subroutine ericttcalc( tk, qci, qcw, qvp,  psfc,ctt,  haveqci,&
 
 END SUBROUTINE ericttcalc
 
+!     ------------------------------------------------
+      SUBROUTINE bulksm(nc,zt,zb,z,si,im,nl,is,nls,so,i0,j0)
+!     ------------------------------------------------
+!
+!     bulk depth-weighted soil moisture integration between [zt,zb] topdown
+!
+! Input
+      integer, intent(in) :: i0,j0
+      integer, intent(in) :: nc                 ! no of bulk layers
+      integer, intent(in) :: im,nl              ! no of horizontal grids,vertical levels
+      integer, intent(in) :: is                 ! 0 means si in fraction else in z-units
+      integer, intent(in) :: nls                ! no of vertical levels for si, last nl levels for soil
+      real, dimension(nc), intent(in) :: zt,zb  ! top,bot boundary soil depth
+                                                ! -1. means at the input top,surface
+      real, dimension(   nl+1), intent(in) :: z    ! interface soil depth
+      real, dimension(im,nls ), intent(in) :: si   ! level fraction of soil filled with water
+                                                   ! ----z(k)-----
+                                                   ! ....si(k+ks)....ks=nls-nl
+                                                   ! ----z(k+1)---
+!
+! Output
+      real, dimension(im,nc ), intent(out) :: so   ! bulk z-w amount between [zt,zb]
+!
+! Local
+      integer :: i,k,n,ks
+      real :: xt,xb
+      real :: xi(nl+1),qi(im,nl)
+      logical :: notdef(im)
+
+!
+      ks = nls-nl
+      if (ks < 0) STOP 'xxxx wrong nls!'
+!
+! check for the none-defined
+!
+      notdef = .false.
+      do i = 1,im
+         do k = 1,nl
+            if (z(  k+1).le.z(  k)) then
+               notdef(i) = .true.
+               cycle
+            endif
+         enddo
+      enddo
+!
+! get the fraction of soil water, scaled it if not defined so on input
+!
+      do k = 1,nl
+         do i = 1,im
+            qi(i,k) = si(i,k+ks)
+         enddo
+      enddo
+      if (is.ne.0) then
+         do k = 1,nl
+            do i = 1,im
+               if (notdef(i)) cycle
+               qi(i,k) = qi(i,k)/(z(  k+1)-z(  k))
+            enddo
+         enddo
+      endif
+!
+! integrate over each bulk layer
+!
+      so = 0.
+      do n = 1,nc
+         do i = 1,im
+            if (notdef(i)) so(i,n) = -1.
+         enddo
+      enddo
+      do n = 1,nc
+         xt = zt(n)
+         xb = zb(n)
+         do i = 1,im
+            if (notdef(i)) cycle
+
+            do k = 1,nl+1
+               xi(k) = z(  k)
+            enddo
+            if (zt(n).eq.-1.) xt = xi(1)       ! at the input top
+            if (zb(n).eq.-1.) xb = xi(nl+1)    ! at the input surface
+
+            do k = 1,nl
+               if ((k.eq.1.and.xt.le.xi(k)).or.            &
+                   (xi(k).le.xt.and.xt.lt.xi(k+1))) then
+!              ---the top boundary
+                  so(i,n) = so(i,n) + qi(i,k)*(xi(k+1)-xt)
+               elseif ((k.eq.nl.and.xb.ge.xi(k+1)).or.     &
+                       (xi(k).le.xb.and.xb.lt.xi(k+1))) then
+!              ---the bottom boundary
+                  so(i,n) = so(i,n) + qi(i,k)*(xb-xi(k))
+               elseif (xt.le.xi(k).and.xi(k+1).le.xb) then
+!              ---the inner layers
+                  so(i,n) = so(i,n) + qi(i,k)*(xi(k+1)-xi(k))
+               endif
+            enddo
+         enddo
+      enddo
+
+      END SUBROUTINE bulksm
+
+
+  SUBROUTINE calc_SM( xwliq,xwice,xzsoil,XSMTg, &
+                      itime,ntime,nsmg_o,ny,nx,nl_soil,nl_soilpsnow)
+
+  IMPLICIT NONE
+
+  !Arguments
+  integer,intent(in):: nl_soil
+  integer,intent(in):: nl_soilpsnow
+  integer, intent(in)                      :: nx, ny
+  integer, intent(in)                      :: ntime
+  integer, intent(in)                      :: nsmg_o
+  real, dimension(nl_soil+1,ny,nx),intent(in)       :: xzsoil
+  real, dimension(nl_soilpsnow,ny,nx),intent(in)    :: xwliq,xwice
+  real, dimension(ntime,nsmg_o,ny,nx),intent(inout) :: XSMTg
+  integer, intent(in)                      :: itime
+  integer, parameter                       :: io=3
+  integer, parameter                       :: im=1 ! do one point each time
+
+  !Local
+  integer, parameter :: MAXLEVELS  = 80        ! max no of output vertical levels
+  integer                                         :: i, j, k
+  integer :: nlesmg                            ! no of bulk soil moisture layers on output
+  integer :: llevel
+  logical :: outputlog=.True.
+  real, dimension(2,MAXLEVELS) :: inqzlsmg         ! soil depth on bulksm levels [m]
+
+  integer, parameter :: nsmg = 4               ! no of bulk soil moisture layers
+  real, dimension(nsmg,2) :: zlsmg             ! depth (m) at top,bot of bulk soil moisture layers
+  data zlsmg/ 0.000, 0.100, 1.000, 0.000      &! top; -1 means model soil surface
+            , 0.100, 1.000, 2.000,  -1. /      ! bot; -1 means model soil bottom
+  real co(im,nsmg)            ! bulk cloud cover between [pt,pb]
+  !integer :: nl_soil,nl_soilpsnow,lb_soil,n3s  ! clm
+
+!
+
+  if (nsmg.ne.nsmg_o)then
+    stop("nsmg not equale nsmg_o")
+  endif
+  nlesmg = 0
+  inqzlsmg =-999
+
+  do llevel = 1,MAXLEVELS
+     if (inqzlsmg(2,llevel) == -1.  .or.        &! above bottom
+        (inqzlsmg(2,llevel) >   0.  .and.       &! below surface
+         inqzlsmg(2,llevel) > inqzlsmg(1,llevel))) then
+         nlesmg = nlesmg + 1
+         inqzlsmg(1,nlesmg) = inqzlsmg(1,llevel)
+         inqzlsmg(2,nlesmg) = inqzlsmg(2,llevel)
+     endif
+  enddo
+
+  if (nlesmg.eq.0) then            ! use the default
+     do llevel = 1,nsmg
+        if (zlsmg(llevel,2) == -1.  .or.        &! above bottom
+           (zlsmg(llevel,2) >   0.  .and.       &! below surface
+            zlsmg(llevel,2) > zlsmg(llevel,1))) then
+            nlesmg = nlesmg + 1
+            inqzlsmg(1,nlesmg) = zlsmg(llevel,1)
+            inqzlsmg(2,nlesmg) = zlsmg(llevel,2)
+        endif
+     enddo
+  endif
+
+  if (nlesmg.eq.0) then
+    if (outputlog)then
+     print '(a)','  xxxx no bulk soil moisture  level!'
+    endif
+  else
+    if (outputlog)then
+     print '(/a,i4)',' ---> Bulk soil moisture  levels:' ,nlesmg
+     print '((6x,8f10.3))', (inqzlsmg(1,llevel),llevel=1,nlesmg)
+     print '((6x,8f10.3))', (inqzlsmg(2,llevel),llevel=1,nlesmg)
+     outputlog=.False.
+    endif
+     do llevel = 1,nlesmg
+        if (inqzlsmg(1,llevel) /= -1.) &
+        inqzlsmg(1,llevel) = inqzlsmg(1,llevel)*1000. ! m -> mm
+        if (inqzlsmg(2,llevel) /= -1.) &
+        inqzlsmg(2,llevel) = inqzlsmg(2,llevel)*1000. ! m -> mm
+     enddo
+  endif
+
+
+  DO i = 1, nx
+  DO j = 1, ny
+     call bulksm(nc=nlesmg,zt=inqzlsmg(1,1:nlesmg),zb=inqzlsmg(2,1:nlesmg), &
+                 z=xzsoil(:,j,i),si=xwliq(:,j,i),im=im,nl=nl_soil,is=1,nls=nl_soilpsnow, so=co,i0=i,j0=j)
+     XSMTg(1+itime,:,j,i)=co(im,:)
+  END DO
+  END DO
+
+  END SUBROUTINE calc_SM
+
+
+
 END MODULE ARWpost
