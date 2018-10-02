@@ -51,6 +51,7 @@ def setmetadata(filename, rawdata):
       nx=ncfile_last.dimensions['west_east'].size
 
     nlev =  number_of_zlevs if var_parameters[taskname]['vert_intp'] else nz 
+  nlev = var_parameters[taskname].get("nlev",nlev)
   return nx,ny,nz,nlev,var_units,var_description,nstep,outputdim,ncfile_last
 
 
@@ -129,7 +130,6 @@ else:
         rawdata=False
 
       nx,ny,nz,nlev,var_units,var_description,nstep,outputdim,ncfile_last=setmetadata(filename,rawdata)
-
 
 
 

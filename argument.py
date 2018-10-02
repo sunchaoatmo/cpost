@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-import ConfigParser 
+#import ConfigParser 
+import configparser as  ConfigParser 
 from os import getcwd,path,getenv
 from netCDF4 import Dataset
 import argparse
@@ -42,13 +43,13 @@ if args.v:
 configfile=getenv("HOME")+'/.post.ini'
 
 if not path.isfile(configfile):
-  print "Welcome, this might be your first time to use cpost, we need to do some env setting:"
+  print("Welcome, this might be your first time to use cpost, we need to do some env setting:")
   target = open(configfile, 'w')
   target.write("[PATH]\n")
   saveenv(target,"r95t")
   saveenv(target,"wrfinput")
   target.close()
-  print "Finished init the configuration file... Thanks! CS"
+  print("Finished init the configuration file... Thanks! CS")
 
 config = ConfigParser.ConfigParser()
 config.read(configfile)

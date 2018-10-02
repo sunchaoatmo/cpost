@@ -239,7 +239,44 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
                          nz =bottom_top , 
                          ns =south_north,
                          ew =west_east,ntime=ntime)
- 
+    elif taskname=="xsmtg":
+      nsmg=4
+      nl_soil_stag=wrf_o.dimensions['nl_soil_stag'].size
+      nl_soilpsnow=wrf_o.dimensions['nl_soilpsnow_stag'].size
+      lb_soil= nl_soilpsnow-nl_soil_stag
+      xz=wrf_i.variables['XZ']
+      xzi=np.zeros((nl_soil_stag+1,south_north,west_east))
+      xzi[1:-1,:,:]=(xz[0,lb_soil+1:,:,:]+xz[0,lb_soil:-1,:,:])*0.5
+      xzi[-1,:,:]=5.67643 #xz[0,-1,:,:]
+      xzi=xzi*1000 
+      """
+      lm=wrf_i.variables['LANDMASK'][0,:,:]
+      i,j=np.where(lm>0)
+      print(xz[0,:,i[0],j[0]])
+      print(xz[0,lb_soil+1:,i[0],j[0]])
+      print(xz[0,lb_soil:-1,i[0],j[0]])
+      print(xzi[:,i[0],j[0]])
+      
+      import sys 
+      sys.exit()
+      print(xz[:,i[0],j[0]])
+      xzsoil=np.zeros((nl_soil,south_north,west_east),dtype=np.float32)
+      xztemp=wrf_i.variables['XZI'][0,:,:,:]
+      xzsoil(1:nl_soil,:,:) = xztemp[lb_soil-1:nl_soilpsnow,:,:]
+      xztemp=wrf_i.variables['XDZ'][0,:,:,:]
+      for k in range(nl_soil)
+         where (xztemp(:,lb_soil+k-1) > 0.) &
+         xzsoil[:,k) = xzsoil[k-1,:,:] + xztemp(:,lb_soil+k-1)
+      enddo
+      """
+      xsmtg=np.zeros((ntime,nsmg,south_north,west_east),order='F',dtype=np.float32)
+
+      for itime in range(ntime):
+        xwliq=wrf_o.variables['XWLIQ'][itime,:,:]
+        xwice=wrf_o.variables['XWICE'][itime,:,:]
+        arwpost.calc_sm( xwliq=xwliq,xwice=xwice,xzsoil=xzi,xsmtg=xsmtg,itime=itime)
+
+
 
     for field in fields:
       if field=="CAPE":
@@ -276,6 +313,8 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
         metfield=ctt
       elif field=="cth":
         metfield=cth
+      elif field=="xsmtg":
+        metfield=xsmtg
       elif field=="WIN_10":
         continue 
       else:
@@ -420,6 +459,7 @@ def wrftimetodate(wrfstr):
   HOUR=slice(11,13)
   MINUTE=slice(14,16)
   SECOND=slice(17,19)
+  wrfstr=[x.decode("utf-8")  for x in wrfstr]
   Year=int(''.join(list(wrfstr[YEAR])))
   Month=int(''.join(list(wrfstr[MONTH])))
   Day=int(''.join(list(wrfstr[DAY])))
