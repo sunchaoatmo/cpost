@@ -49,9 +49,6 @@ var_parameters = {
 "EMISS"            : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"EMISS":None}} , 
 "UQg"              : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"UQg":None}} , 
 "VQg"              : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"VQg":None}} , 
-"XSMIg"            : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"XSMIg":None}} , 
-"XSMLg"            : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"XSMLg":None}} , 
-"XSMTg"            : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"XSMTg":None}} , 
 #"AT2M"             : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"AT2M":None}} , 
 "AODVIS"             : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"AODVIS":None}} , 
 "AODNIR"             : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"AODNIR":None}} , 
@@ -77,7 +74,17 @@ var_parameters = {
                      },
 "xsmtg"            : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"dim":4,
                        "nlev":4,
-                       "fields":{"xsmtg":{"units":"g","description":" grouped SM"},
+                       "fields":{"xsmtg":{"units":"g","description":" Total grouped SM(liq+ice)"},
+                                }
+                     },
+"xsmlg"            : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"dim":4,
+                       "nlev":4,
+                       "fields":{"xsmlg":{"units":"g","description":" liq grouped SM"},
+                                }
+                     },
+"xsmig"            : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"dim":4,
+                       "nlev":4,
+                       "fields":{"xsmig":{"units":"g","description":" ice grouped SM"},
                                 }
                      },
 #"T2MIN"            : { "compute_mode" : 9  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"T2MIN":None}} , 

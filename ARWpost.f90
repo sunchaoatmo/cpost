@@ -2589,7 +2589,7 @@ END SUBROUTINE ericttcalc
       END SUBROUTINE bulksm
 
 
-  SUBROUTINE calc_SM( xwliq,xwice,xzsoil,XSMTg, &
+  SUBROUTINE calc_SM( xwater,xzsoil,XSMTg, &
                       itime,ntime,nsmg_o,ny,nx,nl_soil,nl_soilpsnow)
 
   IMPLICIT NONE
@@ -2601,7 +2601,7 @@ END SUBROUTINE ericttcalc
   integer, intent(in)                      :: ntime
   integer, intent(in)                      :: nsmg_o
   real, dimension(nl_soil+1,ny,nx),intent(in)       :: xzsoil
-  real, dimension(nl_soilpsnow,ny,nx),intent(in)    :: xwliq,xwice
+  real, dimension(nl_soilpsnow,ny,nx),intent(in)    :: xwater
   real, dimension(ntime,nsmg_o,ny,nx),intent(inout) :: XSMTg
   integer, intent(in)                      :: itime
   integer, parameter                       :: io=3
@@ -2625,7 +2625,8 @@ END SUBROUTINE ericttcalc
 !
 
   if (nsmg.ne.nsmg_o)then
-    stop("nsmg not equale nsmg_o")
+    print*,"nsmg not equale nsmg_o"
+    stop
   endif
   nlesmg = 0
   inqzlsmg =-999
@@ -2675,7 +2676,7 @@ END SUBROUTINE ericttcalc
   DO i = 1, nx
   DO j = 1, ny
      call bulksm(nc=nlesmg,zt=inqzlsmg(1,1:nlesmg),zb=inqzlsmg(2,1:nlesmg), &
-                 z=xzsoil(:,j,i),si=xwliq(:,j,i),im=im,nl=nl_soil,is=1,nls=nl_soilpsnow, so=co,i0=i,j0=j)
+                 z=xzsoil(:,j,i),si=xwater(:,j,i),im=im,nl=nl_soil,is=1,nls=nl_soilpsnow, so=co,i0=i,j0=j)
      XSMTg(1+itime,:,j,i)=co(im,:)
   END DO
   END DO
