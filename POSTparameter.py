@@ -189,7 +189,7 @@ var_parameters = {
                        "fields":{
                                 "RH":{"units":"%","description":"Relative Humidity at 2m"} 
                               }} , 
-"rh3d"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : "p"  ,"dim":4,
+"rh3d"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" :None  ,"dim":4,
                        "fields":{
                                 "rh3d":{"units":"%","description":"Relative Humidity"} 
                               }} , 

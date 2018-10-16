@@ -242,7 +242,10 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
     elif taskname in ["xsmtg","xsmlg","xsmig"]:
       nsmg=4
       if not hasattr(anal_daily,"xzi"):
-        nl_soil_stag=wrf_o.dimensions['nl_soil_stag'].size
+        try:
+          nl_soil_stag=wrf_o.dimensions['nl_soil_stag'].size
+        except:
+          nl_soil_stag=11
         nl_soilpsnow=wrf_o.dimensions['nl_soilpsnow_stag'].size
         lb_soil= nl_soilpsnow-nl_soil_stag
         xz=wrf_i.variables['XZ']
@@ -263,6 +266,23 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
         elif taskname=="xsmig":
           xwater=xwice
         arwpost.calc_sm( xwater=xwater,xzsoil=anal_daily.xzi,xsmtg=xsmtg,itime=itime)
+    elif taskname=="rh3d":
+      rh3d=np.zeros((ntime,bottom_top,south_north,west_east)) #,order='F',dtype=np.float32)
+
+      for itime in range(ntime):
+        ph   =wrf_o.variables['PH'][itime,:,:,:]
+        psfc =wrf_o.variables['PSFC'][itime,:,:]
+        qv   =wrf_o.variables['QVAPOR'][itime,:,:,:]
+        geopt_w=ph+phb
+        geopt=(geopt_w[1:,:,:]+geopt_w[:-1,:,:])/2.0
+        t  =wrf_o.variables['T'][itime,:,:,:]
+        p    =wrf_o.variables['P'][itime,:,:,:]
+        pres =p+pb
+        tk = (t+300.) * ( pres / p0 )**RCP
+        for ilevel in range(bottom_top):
+          rh3d[itime,ilevel,:,:]    =arwpost.calc_rh( q2m=qv[ilevel,:,:],t2m=tk[ilevel,:,:],
+                                                psfc=pres[ilevel,:,:])
+
 
 
 
@@ -301,6 +321,8 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
         metfield=ctt
       elif field=="cth":
         metfield=cth
+      elif field=="rh3d":
+        metfield=rh3d
       elif field in ["xsmtg","xsmlg","xsmig"]:
         metfield=xsmtg
       elif field=="WIN_10":
@@ -316,7 +338,7 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
                          nz =ntime , 
                          ns =south_north,
                          ew =west_east)
-          elif field not in ["CAPE","CIN","RH","u_10","v_10","cldfra_low","cldfra_mid","cldfra_high","cldfra_total","slp","tpw_l","tpw_m","tpw_h","lwp","iwp","ALBEDO","AODVIS","AODNIR"]:
+          elif field not in ["CAPE","CIN","RH","u_10","v_10","cldfra_low","cldfra_mid","cldfra_high","cldfra_total","slp","tpw_l","tpw_m","tpw_h","lwp","iwp","ALBEDO","AODVIS","AODNIR","XRNOF","QFX","PRAVG"]:
             outputdata[field][:,:]=np.sum(metfield[1:,:,:],axis=0)
             outputdata[field][:,:]+=wrfncfile_next.variables[field][0,:,:]
             outputdata[field][:,:]=outputdata[field][:,:]*ntime_recip
