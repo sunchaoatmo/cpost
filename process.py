@@ -3,7 +3,7 @@ import numpy as np
 def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
                outputdim,z_levs,number_of_zlevs,compute_mode,
                wrfncfile_last,wrfncfile_next):
-  from constant import RCP,p0,G,Rd,EPS,missing,fill_nocloud,opt_thresh
+  from constant import RCP,p0,G,Rd,EPS,missing,fill_nocloud,opt_thresh,cwrfnames
   from ARWpost import arwpost
   import time
   pb   =wrf_i.variables['PB'][0,:,:,:]
@@ -154,23 +154,26 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
                          bottom_top_dim =bottom_top , 
                          south_north_dim=south_north,
                          west_east_dim=west_east,ntime=ntime)
-    elif taskname=="tpw":
-      tpw_l=np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
-      tpw_m=np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
-      tpw_h=np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
+    #cloud ralated
+    elif taskname in ["TCL","TCR","TCI","TCS","TCG","TPW"]:
+      tc_l=np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
+      tc_m=np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
+      tc_h=np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
       for itime in range(ntime):
         p    =wrf_o.variables['P'][itime,:,:,:]
         pres =p+pb
-        qv   =wrf_o.variables['QVAPOR'][itime,:,:,:]
+        q    =wrf_o.variables[cwrfnames[taskname]][itime,:,:,:]
         psfc =wrf_o.variables['PSFC'][itime,:,:]
-        arwpost.calc_tpw(pres=pres,qv=qv,psfc=psfc,
-                         tpw_h=tpw_h,
-                         tpw_m=tpw_m,
-                         tpw_l=tpw_l,
+        arwpost.calc_tpw(pres=pres,qv=q,psfc=psfc,
+                         tpw_h=tc_h,
+                         tpw_m=tc_m,
+                         tpw_l=tc_l,
                          itime=itime,
                          bottom_top_dim =bottom_top , 
                          south_north_dim=south_north,
                          west_east_dim=west_east,ntime=ntime)
+    #cloud ralated
+
     elif taskname=="lwp":
       lwp=np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
       for itime in range(ntime):
@@ -307,12 +310,14 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
         metfield=cldfra_total
       elif field=="slp":
         metfield=slp
-      elif field=="tpw_l":
-        metfield=tpw_l*0.1 #convert to cm
-      elif field=="tpw_h":
-        metfield=tpw_h*0.1 # convert to cm
-      elif field=="tpw_m":
-        metfield=tpw_m*0.1 # convert to cm
+      # cloud ralated 
+      elif field in ["TPW_l","TCL_l","TCR_l","TCI_l","TCS_l","TCG_l"]:
+        metfield=tc_l*0.1 #convert to cm
+      elif field in ["TPW_m","TCL_m","TCR_m","TCI_m","TCS_m","TCG_m"]:
+        metfield=tc_m*0.1 # convert to cm
+      elif field in ["TPW_h","TCL_h","TCR_h","TCI_h","TCS_h","TCG_h"]:
+        metfield=tc_h*0.1 # convert to cm
+      # cloud ralated 
       elif field=="lwp":
         metfield=lwp
       elif field=="iwp":
@@ -338,7 +343,17 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
                          nz =ntime , 
                          ns =south_north,
                          ew =west_east)
-          elif field not in ["CAPE","CIN","RH","u_10","v_10","cldfra_low","cldfra_mid","cldfra_high","cldfra_total","slp","tpw_l","tpw_m","tpw_h","lwp","iwp","ALBEDO","AODVIS","AODNIR","XRNOF","QFX","PRAVG"]:
+          elif field not in ["CAPE","CIN","RH","u_10","v_10",
+                             "cldfra_low","cldfra_mid","cldfra_high","cldfra_total",
+                             "slp","tpw_l","tpw_m","tpw_h","lwp","iwp",
+                             "ALBEDO","AODVIS","AODNIR","XRNOF","QFX","PRAVG","SST","TSK",
+                             "TPW_l","TPW_m","TPW_h",
+                             "TCL_l","TCL_m","TCL_h",
+                             "TCR_l","TCR_m","TCR_h",
+                             "TCI_l","TCI_m","TCI_h",
+                             "TCS_l","TCS_m","TCS_h",
+                             "TCG_l","TCG_m","TCG_h"
+                             ]:
             outputdata[field][:,:]=np.sum(metfield[1:,:,:],axis=0)
             outputdata[field][:,:]+=wrfncfile_next.variables[field][0,:,:]
             outputdata[field][:,:]=outputdata[field][:,:]*ntime_recip

@@ -104,7 +104,9 @@ var_parameters = {
 "ASWUPT"           : { "compute_mode" : 1  , "shiftday" : -1  , "vert_intp" : None ,"fields":{"ASWUPT":None}} , 
 "ASWUPTC"          : { "compute_mode" : 1  , "shiftday" : -1  , "vert_intp" : None ,"fields":{"ASWUPTC":None}} , 
 "ASWDNT"           : { "compute_mode" : 1  , "shiftday" : -1  , "vert_intp" : None ,"fields":{"ASWDNT":None}} , 
-"ASWDNS"           : { "compute_mode" : 1  , "shiftday" : -1  , "vert_intp" : None ,"fields":{"ASWDNS":None}} , 
+#"ASWDNS"           : { "compute_mode" : 1  , "shiftday" : -1  , "vert_intp" : None ,"fields":{"ASWDNS":None}} , 
+"ASWDNS"           : { "compute_mode" : 1  , "shiftday" : -1  , "vert_intp" : None  ,"dim":3,
+                       "fields"       :{"ASWDNS":{"units":"w m-2","description":"short wave downwelling at surface"} }} , 
 "ASWDNSC"          : { "compute_mode" : 1  , "shiftday" : -1  , "vert_intp" : None ,"fields":{"ASWDNSC":None}} , 
 "ASWUPS"           : { "compute_mode" : 1  , "shiftday" : -1  , "vert_intp" : None ,"fields":{"ASWUPS":None}} , 
 "ASWUPSC"          : { "compute_mode" : 1  , "shiftday" : -1  , "vert_intp" : None ,"fields":{"ASWUPSC":None}} , 
@@ -211,11 +213,33 @@ var_parameters = {
                        "fields":{ "ctt":{"units":"K","description":"Cloud top temperature"}, 
                                   "cth":{"units":"meter","description":"Cloud top height(above topography)"} 
                          }} , 
-"tpw"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None  ,"dim":3,
-                       "fields":{ "tpw_l":{"units":"cm","description":"totol precipitable water Surface to 680mb"} 
-                                 ,"tpw_m":{"units":"cm","description":"totol precipitable water 680 to 440 mb"} 
-                                 ,"tpw_h":{"units":"cm","description":"totol precipitable water 440 to model top"} 
+"TPW"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None  ,"dim":3,
+                       "fields":{ "TPW_l":{"units":"cm","description":"totol precipitable water Surface to 680mb"} 
+                                 ,"TPW_m":{"units":"cm","description":"totol precipitable water 680 to 440 mb"} 
+                                 ,"TPW_h":{"units":"cm","description":"totol precipitable water 440 to model top"} 
                          }} , 
+#for cloud related
+"TCL"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None  ,"dim":3,
+                       "fields":{ "TCL_l":{"units":"cm","description":"totol cloud liquid water Surface to 680mb"} 
+                                 ,"TCL_m":{"units":"cm","description":"totol cloud liquid water 680 to 440 mb"} 
+                                 ,"TCL_h":{"units":"cm","description":"totol cloud liquid water 440 to model top"} }} , 
+"TCR"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None  ,"dim":3,
+                       "fields":{ "TCR_l":{"units":"cm","description":"totol cloud rain water Surface to 680mb"} 
+                                 ,"TCR_m":{"units":"cm","description":"totol cloud rain water 680 to 440 mb"} 
+                                 ,"TCR_h":{"units":"cm","description":"totol cloud rain water 440 to model top"} }} , 
+"TCI"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None  ,"dim":3,
+                       "fields":{ "TCI_l":{"units":"cm","description":"totol cloud ice water Surface to 680mb"} 
+                                 ,"TCI_m":{"units":"cm","description":"totol cloud ice water 680 to 440 mb"} 
+                                 ,"TCI_h":{"units":"cm","description":"totol cloud ice water 440 to model top"} }} , 
+"TCS"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None  ,"dim":3,
+                       "fields":{ "TCS_l":{"units":"cm","description":"totol cloud snow water Surface to 680mb"} 
+                                 ,"TCS_m":{"units":"cm","description":"totol cloud snow water 680 to 440 mb"} 
+                                 ,"TCS_h":{"units":"cm","description":"totol cloud snow water 440 to model top"} }} , 
+"TCG"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None  ,"dim":3,
+                       "fields":{ "TCG_l":{"units":"cm","description":"totol cloud graupel water Surface to 680mb"} 
+                                 ,"TCG_m":{"units":"cm","description":"totol cloud graupel water 680 to 440 mb"} 
+                                 ,"TCG_h":{"units":"cm","description":"totol cloud graupel water 440 to model top"} }} , 
+#for cloud related
 "cldfrag"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None  ,"dim":3,
                        "fields":{
                                "cldfra_total":{"units":"unitless","description":"total cloud"}, 

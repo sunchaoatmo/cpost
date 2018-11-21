@@ -20,6 +20,13 @@ CPMD = 0.887
 RCP = Rd/Cp
 p0 = 100000.
 EPS = 0.622
+cwrfnames={"TPW":"QVAPOR",
+           "TCL":"QCLOUD", 
+           "TCR":"QRAIN", 
+           "TCI":"QICE", 
+           "TCS":"QSNOW", 
+           "TCG":"QGRAUP"
+           }
 """
         fill_nocloud (:obj:`bool`, optional): Set to True to use fill values in 
             regions where clouds are not detected (optical depth less than 1). 
