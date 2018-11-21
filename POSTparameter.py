@@ -59,7 +59,6 @@ var_parameters = {
 "AU2M"             : { "compute_mode" : 1  , "shiftday" : -1  , "vert_intp" : None ,"fields":{"AU2M":None}} , 
 "AV2M"             : { "compute_mode" : 1  , "shiftday" : -1  , "vert_intp" : None ,"fields":{"AV2M":None}} , 
 "AQ2M"             : { "compute_mode" : 1  , "shiftday" : -1  , "vert_intp" : None ,"fields":{"AQ2M":None}} , 
-#"T2MAX"            : { "compute_mode" : 8  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"T2MAX":None}} , 
 "T2MAX"            : { "compute_mode" : 8  , "shiftday" : 0  , "vert_intp" : None ,"dim":3,
                        "fields":{"T2MAX":{"units":"K","description":"maxium temperatrue at 2 meter "},
                                 }
@@ -87,7 +86,6 @@ var_parameters = {
                        "fields":{"xsmig":{"units":"g","description":" ice grouped SM"},
                                 }
                      },
-#"T2MIN"            : { "compute_mode" : 9  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"T2MIN":None}} , 
 "RAINC"            : { "compute_mode" : 6  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"RAINC":None}} , 
 "RAINNC"           : { "compute_mode" : 6  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"RAINNC":None}} , 
 "CDD"              : { "compute_mode" : 12 , "shiftday" : 0  , "vert_intp" : None ,"fields":{"CDD":None}} , 
@@ -213,6 +211,12 @@ var_parameters = {
                        "fields":{ "ctt":{"units":"K","description":"Cloud top temperature"}, 
                                   "cth":{"units":"meter","description":"Cloud top height(above topography)"} 
                          }} , 
+####QU QV
+"Qflux"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : "p"  ,"dim":4,
+                       "fields":{
+                                "uq":{"units":"m s-1","description":"Zonal moisture flux "}, 
+                                "vq":{"units":"m s-1","description":"Meridional moisture flux"} }} , 
+####QU QV
 "TPW"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None  ,"dim":3,
                        "fields":{ "TPW_l":{"units":"cm","description":"totol precipitable water Surface to 680mb"} 
                                  ,"TPW_m":{"units":"cm","description":"totol precipitable water 680 to 440 mb"} 

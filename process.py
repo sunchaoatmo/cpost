@@ -14,7 +14,7 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
   south_north =wrf_o.dimensions['south_north'].size
   west_east   =wrf_o.dimensions['west_east'].size
   bottom_top  =wrf_o.dimensions['bottom_top'].size
-  if "uv" in taskname:
+  if taskname in ["uv_met","uv_10","Qflux"]:
     cosalpha = wrf_i.variables['COSALPHA'][0]
     sinalpha = wrf_i.variables['SINALPHA'][0]
   if vert_intp=="p":
@@ -23,10 +23,11 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
     qv   =None
     psfc =None
     nz,ny,nx=bottom_top,south_north, west_east
+
     for itime in range(ntime):
       p    =wrf_o.variables['P'][itime,:,:,:]
       pres =p+pb
-      if taskname=="geopt" or taskname=="height" or taskname=="temp" or taskname=="omega":
+      if taskname in ["geopt", "height" ,"temp" ,"omega","Qflux"]:
         ph   =wrf_o.variables['PH'][itime,:,:,:]
         psfc =wrf_o.variables['PSFC'][itime,:,:]
         qv   =wrf_o.variables['QVAPOR'][itime,:,:,:]
@@ -35,6 +36,18 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
         t  =wrf_o.variables['T'][itime,:,:,:]
         tk = (t+300.) * ( pres / p0 )**RCP
         theta = (t+300.)
+
+      if taskname in ["Qflux"]:
+        U=wrf_o.variables["U"][itime,:,:,:]
+        V=wrf_o.variables["V"][itime,:,:,:]
+        U= np.asarray(U)
+        V= np.asarray(V)
+        V= (V[:,1:,:]+V[:,:-1,:])*0.5
+        U= (U[:,:,1:]+U[:,:,:-1])*0.5
+        UE = U * cosalpha - V * sinalpha
+        VE = V * cosalpha + U * sinalpha
+        q  = wrf_o.variables["QVAPOR"][itime,:,:,:]
+        q  = np.asarray(q)
 
       if taskname=="rh3d":
         if itime==0:
@@ -77,6 +90,10 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
           metfield=omega
         elif field=="rh3d":
           metfield=rh3d
+        elif field=="uq":
+          metfield=UE*q
+        elif field=="vq":
+          metfield=VE*q
 
         outputdata[field][:,:,:]+= arwpost.interp(
              cname=field                     , vertical_type=vert_intp         , 
@@ -89,7 +106,8 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
              bottom_top_dim=bottom_top       , south_north_dim=south_north     , west_east_dim=west_east)
     for field in fields:
       outputdata[field][:,:,:]=outputdata[field][:,:,:]/ntime
-    if taskname=="uv_met":
+
+    if taskname =="uv_met":
       ur=outputdata["u_met"][:,:,:]
       vr=outputdata["v_met"][:,:,:]
       ue = ur * cosalpha - vr * sinalpha
@@ -98,6 +116,8 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
       outputdata["WIN"][:,:,:]=win
       outputdata["u_met"][:,:,:]=ue
       outputdata["v_met"][:,:,:]=ve
+
+
   else:
     if taskname=="conv":
       cape=np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
@@ -506,6 +526,8 @@ def anal_hourly(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,outputdim,
   if "uv" in taskname:
     cosalpha = wrf_i.variables['COSALPHA'][0]
     sinalpha = wrf_i.variables['SINALPHA'][0]
+    cosalpha = np.asarray(cosalpha )
+    sinalpha = np.asarray(sinalpha )
   if vert_intp=="p":
     hgt  =wrf_i.variables['HGT'][0,:,:]
     if taskname=="geopt" or taskname=="height" or taskname=="temp" :
