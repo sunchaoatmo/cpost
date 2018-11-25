@@ -149,6 +149,8 @@ else:
         anal_sea_mon("monthly",rawnc,monthlyList,var_parameters[taskname]["fields"].keys(),
                           taskname,casename,shiftday,calendar_cur,units_cur,var_units,var_description,ny,nx,nlev,r95tnc)
       if rawdata:
-        rawnc.history = 'Post-processed Chao Sun sunchao@umd.edu ' + time.ctime(time.time())
+        for name in ncfile_last.__dict__: 
+          setattr(rawnc,name, getattr(ncfile_last,name))
+        rawnc.history = 'Post-processed Chao Sun sunchao@umd.edu ' + time.ctime(time.time())+getattr(ncfile_last,"history","")
         rawnc.source ='CWRF'
       rawnc.close() #flush out rawnc
