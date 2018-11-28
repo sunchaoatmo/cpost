@@ -148,10 +148,14 @@ else:
                           taskname,casename,shiftday,calendar_cur,units_cur,var_units,var_description,ny,nx,nlev,r95tnc)
         diag_m=anal_sea_mon("monthly",rawnc,monthlyList,var_parameters[taskname]["fields"].keys(),
                           taskname,casename,shiftday,calendar_cur,units_cur,var_units,var_description,ny,nx,nlev,r95tnc)
+
+      import getpass
+      import socket
+      history='%s post-processed by %s on %s;%s '% ( time.ctime(time.time()),getpass.getuser(),socket.gethostname(),getattr(ncfile_last,"history",""))
       if rawdata:
         for name in ncfile_last.__dict__: 
           setattr(rawnc,name, getattr(ncfile_last,name))
-        rawnc.history = 'Post-processed Chao Sun sunchao@umd.edu ' + time.ctime(time.time())+getattr(ncfile_last,"history","")
+        rawnc.history = history
         rawnc.variables["lat"][:]=wrfinputnc.variables["CLAT"][0,:,:]
         rawnc.variables["lon"][:]=wrfinputnc.variables["CLONG"][0,:,:]
       rawnc.close() #flush out rawnc
@@ -160,12 +164,12 @@ else:
           setattr(diag_s,name, getattr(ncfile_last,name))
         diag_s.variables["lat"][:]=wrfinputnc.variables["CLAT"][0,:,:]
         diag_s.variables["lon"][:]=wrfinputnc.variables["CLONG"][0,:,:]
-        diag_s.history = 'Post-processed Chao Sun sunchao@umd.edu ' + time.ctime(time.time())+getattr(ncfile_last,"history","")
+        diag_s.history = history
         diag_s.close() #flush out rawnc
       if diag_m is not None:
         for name in ncfile_last.__dict__: 
             setattr(diag_m,name, getattr(ncfile_last,name))
         diag_m.variables["lat"][:]=wrfinputnc.variables["CLAT"][0,:,:]
         diag_m.variables["lon"][:]=wrfinputnc.variables["CLONG"][0,:,:]
-        diag_m.history = 'Post-processed Chao Sun sunchao@umd.edu ' + time.ctime(time.time())+getattr(ncfile_last,"history","")
+        diag_m.history = history
         diag_m.close() #flush out rawnc
