@@ -19,6 +19,18 @@ def createsmnc(casename,vname,periods,fields,nx,ny,nz=None):
     nc_dim=("time",periods,"lat","lon",)
   for field in fields:
     rootgrp.createVariable(field,"f4",nc_dim)
+
+  nc_dim=("lat","lon",)
+  lat=rootgrp.createVariable("lat","f4",nc_dim,fill_value=-999)
+  lat.units ="degrees_north"
+  lat.long_name ="latitude"
+  lat.standard_name ="latitude"
+
+  lon=rootgrp.createVariable("lon","f4",nc_dim,fill_value=-999)
+  lon.units ="degrees_east"
+  lon.long_name ="longitude"
+  lon.standard_name ="longitude"
+
   return rootgrp
 
 
@@ -32,6 +44,7 @@ def createnc(filename,vname,periods,units,calendar,fields,nx,ny,nz=None):
   T                   = rootgrp.createVariable("time"    , "f8"  , ("time" , ))
   T.units             = units
   T.calendar          = calendar
+  T.axis              = "T"
   if nz:
     rootgrp.createDimension("bottom_top"      , nz )
     nc_dim=("time","bottom_top","south_north","west_east",)
@@ -39,6 +52,18 @@ def createnc(filename,vname,periods,units,calendar,fields,nx,ny,nz=None):
     nc_dim=("time","south_north","west_east",)
   for field in fields:
     rootgrp.createVariable(field,"f4",nc_dim,fill_value=-999)
+
+  nc_dim=("south_north","west_east",)
+  lat=rootgrp.createVariable("lat","f4",nc_dim,fill_value=-999)
+  lat.units ="degrees_north"
+  lat.long_name ="latitude"
+  lat.standard_name ="latitude"
+
+  lon=rootgrp.createVariable("lon","f4",nc_dim,fill_value=-999)
+  lon.units ="degrees_east"
+  lon.long_name ="longitude"
+  lon.standard_name ="longitude"
+
   return rootgrp 
 
 

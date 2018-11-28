@@ -152,14 +152,20 @@ else:
         for name in ncfile_last.__dict__: 
           setattr(rawnc,name, getattr(ncfile_last,name))
         rawnc.history = 'Post-processed Chao Sun sunchao@umd.edu ' + time.ctime(time.time())+getattr(ncfile_last,"history","")
+        rawnc.variables["lat"][:]=wrfinputnc.variables["CLAT"][0,:,:]
+        rawnc.variables["lon"][:]=wrfinputnc.variables["CLONG"][0,:,:]
       rawnc.close() #flush out rawnc
       if diag_s is not None:
         for name in ncfile_last.__dict__: 
           setattr(diag_s,name, getattr(ncfile_last,name))
+        diag_s.variables["lat"][:]=wrfinputnc.variables["CLAT"][0,:,:]
+        diag_s.variables["lon"][:]=wrfinputnc.variables["CLONG"][0,:,:]
         diag_s.history = 'Post-processed Chao Sun sunchao@umd.edu ' + time.ctime(time.time())+getattr(ncfile_last,"history","")
         diag_s.close() #flush out rawnc
       if diag_m is not None:
         for name in ncfile_last.__dict__: 
             setattr(diag_m,name, getattr(ncfile_last,name))
+        diag_m.variables["lat"][:]=wrfinputnc.variables["CLAT"][0,:,:]
+        diag_m.variables["lon"][:]=wrfinputnc.variables["CLONG"][0,:,:]
         diag_m.history = 'Post-processed Chao Sun sunchao@umd.edu ' + time.ctime(time.time())+getattr(ncfile_last,"history","")
         diag_m.close() #flush out rawnc
