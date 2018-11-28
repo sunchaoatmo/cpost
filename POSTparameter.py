@@ -61,7 +61,14 @@ var_parameters = {
 "AODVIS"             : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"AODVIS":None}} , 
 "AODNIR"             : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"AODNIR":None}} , 
 "T2M"              : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"T2M":None}} , 
-"SST"              : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"SST":None}} , 
+"SST"              : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"dim":3,
+                       "fields":{"SST":{"units":"K","description":"Sea surface temperature "},
+                                }
+                     },
+"TSK"              : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"dim":3,
+                       "fields":{"TSK":{"units":"K","description":"Skin temperature "},
+                                }
+                     },
 "XTSS"             : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"XTSS":None}} , 
 "T2"               : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"T2":None}} , 
 "AU2M"             : { "compute_mode" : 1  , "shiftday" : -1  , "vert_intp" : None ,"fields":{"AU2M":None}} , 
@@ -185,7 +192,6 @@ var_parameters = {
 "XSABVG"           : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"XSABVG":None}} , 
 "XSABVSUN"         : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"XSABVSUN":None}} , 
 "XSABVSHA"         : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"XSABVSHA":None}} , 
-"TSK"              : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"TSK":None}} , 
 "TSLB"             : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"TSLB":None}} , 
 "SMOIS"            : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"SMOIS":None}} , 
 "omega"            : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : 'p'  ,"dim":4,
