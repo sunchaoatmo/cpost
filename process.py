@@ -415,11 +415,11 @@ def anal_sea_mon(periods,rawnc,monthList,fields,taskname,casename,shiftday,calen
 
   #if beg_num+shiftday>=nctime[0] and end_num<=nctime[-1] and start_ymd.year<end_ymd.year: 
   if periods=="seasonal":
-    if beg_num+shiftday<nctime[0] or end_num>nctime[-1] or start_ymd.year>=end_ymd.year : 
+    if start_ymd.year>=end_ymd.year : 
        print("less than one year no seasonal output")
        return None
   if periods=="monthly":
-    if start_ymd.month==end_ymd.month:
+    if start_ymd.month==end_ymd.month and start_ymd.year==end_ymd.year:
        print("less than one month no monthly output")
        return None
 
