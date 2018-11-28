@@ -144,13 +144,22 @@ else:
 
 ########################DIAG PART#################################
       if periods=="daily" and not args.inputfname:
-        anal_sea_mon("seasonal",rawnc,seasonList,var_parameters[taskname]["fields"].keys(),
+        diag_s=anal_sea_mon("seasonal",rawnc,seasonList,var_parameters[taskname]["fields"].keys(),
                           taskname,casename,shiftday,calendar_cur,units_cur,var_units,var_description,ny,nx,nlev,r95tnc)
-        anal_sea_mon("monthly",rawnc,monthlyList,var_parameters[taskname]["fields"].keys(),
+        diag_m=anal_sea_mon("monthly",rawnc,monthlyList,var_parameters[taskname]["fields"].keys(),
                           taskname,casename,shiftday,calendar_cur,units_cur,var_units,var_description,ny,nx,nlev,r95tnc)
       if rawdata:
         for name in ncfile_last.__dict__: 
           setattr(rawnc,name, getattr(ncfile_last,name))
         rawnc.history = 'Post-processed Chao Sun sunchao@umd.edu ' + time.ctime(time.time())+getattr(ncfile_last,"history","")
-        rawnc.source ='CWRF'
       rawnc.close() #flush out rawnc
+      if diag_s is not None:
+        for name in ncfile_last.__dict__: 
+          setattr(diag_s,name, getattr(ncfile_last,name))
+        diag_s.history = 'Post-processed Chao Sun sunchao@umd.edu ' + time.ctime(time.time())+getattr(ncfile_last,"history","")
+        diag_s.close() #flush out rawnc
+      if diag_m is not None:
+        for name in ncfile_last.__dict__: 
+            setattr(diag_m,name, getattr(ncfile_last,name))
+        diag_m.history = 'Post-processed Chao Sun sunchao@umd.edu ' + time.ctime(time.time())+getattr(ncfile_last,"history","")
+        diag_m.close() #flush out rawnc
