@@ -27,6 +27,7 @@ cwrfnames={"TPW":"QVAPOR",
            "TCS":"QSNOW", 
            "TCG":"QGRAUP"
            }
+seasonnames=["DJF","JJA","MAM","SON"]
 """
         fill_nocloud (:obj:`bool`, optional): Set to True to use fill values in 
             regions where clouds are not detected (optical depth less than 1). 

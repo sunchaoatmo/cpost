@@ -404,94 +404,98 @@ def anal_sea_mon(periods,rawnc,monthList,fields,taskname,casename,shiftday,calen
   from netCDF4 import Dataset
   from datetime import datetime,timedelta
   from constant import seasonList,monthlyList,dry_lim,qvalue # only several constants
+  from constant import seasonnames
   import time
   from writenc import createsmnc
-  dodiag=False
   nctime=rawnc.variables["time"]
   start_ymd=num2date(nctime[0],units=time_units,calendar=calendar_cur)
   end_ymd  =num2date(nctime[-1],units=time_units,calendar=calendar_cur)
   beg_num =date2num( datetime(start_ymd.year,12,1),units=time_units,calendar=calendar_cur)
   end_num =date2num( datetime(  end_ymd.year,11,30),units=time_units,calendar=calendar_cur)
-  print(calendar_cur)
-  print("tt")
-  print(start_ymd)
-  print("tt")
 
   #if beg_num+shiftday>=nctime[0] and end_num<=nctime[-1] and start_ymd.year<end_ymd.year: 
+  if periods=="seasonal":
+    if beg_num+shiftday<nctime[0] or end_num>nctime[-1] or start_ymd.year>=end_ymd.year : 
+       print("less than one year no seasonal output")
+       return None
+  if periods=="monthly":
+    if start_ymd.month==end_ymd.month:
+       print("less than one month no monthly output")
+       return None
+
   diagfname="%s_%s_%s.nc"%(casename,taskname,periods)
   diagexist=os.path.isfile(diagfname) 
-  if diagexist:
-    diagfname="%s_%s_%s.nc"%(casename,taskname,periods)
+  lastindex=0
+  diag_startyear=start_ymd.year#+1
+  diag_endyear=end_ymd.year
+
+  try: 
     diagnc=Dataset(diagfname,'a')
     nctime_diag=diagnc.variables["time"]
     lastindex=len(nctime_diag)
+    assert  nctime_diag>0
     if nctime_diag[-1]<end_ymd.year:
-      print("do %s mean diagnostic analysis"%periods)
-      dodiag=True
+      print("Following previous output")
       diag_startyear=nctime_diag[-1]+1
       diag_endyear=end_ymd.year
-  else:
-    lastindex=0
-    dodiag=True
-    diag_startyear=start_ymd.year+1 if periods=="seasonal" else start_ymd.year
-    diag_endyear=end_ymd.year
+  except:
+    print("create a new")
     diagnc=createsmnc(casename,taskname,periods,fields,nx,ny,nz)
     for field in fields:
       diagnc.variables[field].units=units[field]
       diagnc.variables[field].description=description[field]
 
-  if dodiag:
-    Years=range(diag_startyear,diag_endyear+1)
-    diagnc.variables['time'][lastindex:]=Years
-    for i,year in  enumerate(Years):
-      i_cur=i+lastindex
-      for j,month in enumerate(monthList):
-        byear=year
-        if periods=="seasonal" and 12 == month[0]:
-          byear=year-1
-        eyear=year
-        bmonth=month[0]
-        emonth=month[1]
-        bday=1
-        if calendar_cur=="noleap":
-          eday=calendar.monthrange(1999, emonth)[1]
+  Years=range(diag_startyear,diag_endyear+1)
+  diagnc.variables['time'][lastindex:]=Years
+  for i,year in  enumerate(Years):
+    i_cur=lastindex+i
+    for j,month in enumerate(monthList):
+      byear=year
+      if periods=="seasonal" and 12 == month[0]:
+        byear=year-1
+      eyear=year
+      bmonth=month[0]
+      emonth=month[1]
+      bday=1
+      if calendar_cur=="noleap":
+        eday=calendar.monthrange(1999, emonth)[1]
+      else:
+        eday=calendar.monthrange(eyear, emonth)[1]
+      ymd_datetime_b=datetime(int(byear),int(bmonth),1,0,0,0)
+      dayb=date2num(ymd_datetime_b,units=time_units,calendar=calendar_cur)
+      ymd_datetime_e=datetime(int(eyear),int(emonth),int(eday),0,0,0)
+      daye=date2num(ymd_datetime_e,units=time_units,calendar=calendar_cur)
+      dayb=dayb-rawnc.variables["time"][0]#+shiftday
+      daye=daye-rawnc.variables["time"][0]#+shiftday
+      if daye<0 or dayb<0 or daye>len(rawnc.variables["time"]):
+        continue
+      if taskname=="PR":
+        data_daily_ma=ma.masked_values(rawnc.variables["PRAVG"][int(dayb):int(daye),:,:],1.e+20)
+        R95T_HIST=None
+        if periods=="seasonal":
+          R95T_HIST=r95t_hist.variables["R95T_hist"][j]
         else:
-          eday=calendar.monthrange(eyear, emonth)[1]
-        ymd_datetime=datetime(int(byear),int(bmonth),1,0,0,0)
-        dayb=date2num(ymd_datetime,units=time_units,calendar=calendar_cur)
-        print("%s analysis beg:%s"%(periods,ymd_datetime))
-        ymd_datetime=datetime(int(eyear),int(emonth),int(eday),0,0,0)
-        print("%s analysis end:%s"%(periods,ymd_datetime))
-        daye=date2num(ymd_datetime,units=time_units,calendar=calendar_cur)
-        dayb=dayb-rawnc.variables["time"][0]#+shiftday
-        daye=daye-rawnc.variables["time"][0]#+shiftday
-        if (daye<0 or dayb<0):
-          for field in fields:
-            diagnc.variables[field][i_cur,j,:,:]=-9999
-        else:
-          if taskname=="PR":
-            data_daily_ma=ma.masked_values(rawnc.variables["PRAVG"][int(dayb):int(daye),:,:],1.e+20)
-            if periods=="seasonal":
-              R95T_HIST=r95t_hist.variables["R95T_hist"][j]
-            else:
-              R95T_HIST=None
-            R95T_HIST=None
-            (diagnc.variables["RAINYDAYS"][i_cur,j,:,:],
-             diagnc.variables["R10"][i_cur,j,:,:],
-             diagnc.variables["R5D"][i_cur,j,:,:],
-             diagnc.variables["SDII"][i_cur,j,:,:],
-             diagnc.variables["R95T"][i_cur,j,:,:])=cs_stat.precp_extrem(fields=data_daily_ma,r95t_hist=R95T_HIST,dry_lim=dry_lim)
-            diagnc.variables["PCT"][i_cur,j,:,:]=cs_stat.quantile_cal(pre_quantile=data_daily_ma,dry_lim=dry_lim,qvalue=qvalue)
-            diagnc.variables["CDD"][i_cur,j,:,:]=cs_stat.consective_dry(fields=data_daily_ma,dry_lim=dry_lim)
-            diagnc.variables["PRAVG"][i_cur,j,:,:]=np.mean(data_daily_ma,axis=0)
-          else:
-            for field in fields:
-              data_daily_ma=ma.masked_values(rawnc.variables[field][int(dayb):int(daye),:,:],1.e+20)
-              diagnc.variables[field][i_cur,j,:,:]=np.mean(data_daily_ma,axis=0)
-          print("year %s %s %s"% (str(year),periods,str(j)))
-    diagnc.history ='Created by Chao Sun sunchao@umd.edu ' + time.ctime(time.time())
-    diagnc.source ='CWRF run:%s'%casename
-    diagnc.close()
+          R95T_HIST=None
+        (diagnc.variables["RAINYDAYS"][i_cur,j,:,:],
+         diagnc.variables["R10"][i_cur,j,:,:],
+         diagnc.variables["R5D"][i_cur,j,:,:],
+         diagnc.variables["SDII"][i_cur,j,:,:],
+         diagnc.variables["R95T"][i_cur,j,:,:])=cs_stat.precp_extrem(fields=data_daily_ma,r95t_hist=R95T_HIST,dry_lim=dry_lim)
+        diagnc.variables["PCT"][i_cur,j,:,:]=cs_stat.quantile_cal(pre_quantile=data_daily_ma,dry_lim=dry_lim,qvalue=qvalue)
+        diagnc.variables["CDD"][i_cur,j,:,:]=cs_stat.consective_dry(fields=data_daily_ma,dry_lim=dry_lim)
+        diagnc.variables["PRAVG"][i_cur,j,:,:]=np.mean(data_daily_ma,axis=0)
+      else:
+        for field in fields:
+          temp=np.asarray(rawnc.variables[field][int(dayb):int(daye)+1,:,:])
+          data_daily_ma=ma.masked_values(temp,1.e+20)
+          diagnc.variables[field][i_cur,j,:,:]=np.mean(data_daily_ma,axis=0)
+      if periods=="monthly":
+        print("Year %s %s:"% (str(year),calendar.month_abbr[j+1]))
+      else: 
+        print("Year %s %s:"% (str(year),seasonnames[j]))
+      print("     %s analysis beg:%s"%(periods,ymd_datetime_b))
+      print("     %s analysis end:%s"%(periods,ymd_datetime_e))
+  return diagnc
 
 def wrftimetodate(wrfstr):
   from datetime import datetime
