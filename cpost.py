@@ -164,12 +164,12 @@ else:
           setattr(diag_s,name, getattr(ncfile_last,name))
         diag_s.variables["lat"][:]=wrfinputnc.variables["CLAT"][0,:,:]
         diag_s.variables["lon"][:]=wrfinputnc.variables["CLONG"][0,:,:]
-        diag_s.history = history
+        diag_s.history = diag_s.history+history
         diag_s.close() #flush out rawnc
       if diag_m is not None:
         for name in ncfile_last.__dict__: 
             setattr(diag_m,name, getattr(ncfile_last,name))
         diag_m.variables["lat"][:]=wrfinputnc.variables["CLAT"][0,:,:]
         diag_m.variables["lon"][:]=wrfinputnc.variables["CLONG"][0,:,:]
-        diag_m.history = history
+        diag_m.history = diag_m.history+history
         diag_m.close() #flush out rawnc

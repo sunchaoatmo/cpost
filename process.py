@@ -474,6 +474,7 @@ def anal_sea_mon(periods,rawnc,monthList,fields,taskname,casename,shiftday,calen
       elif dayb<0:
         print("WRANING your first day is not the begining of the month!!!")
         ymd_datetime_b=datetime(int(byear),int(bmonth),int(1-dayb),0,0,0) # reset the first day
+        diagnc.history = "Warning the first day is not the begining of the month but %s"%ymd_datetime_b
         dayb=0
       if taskname=="PR":
         data_daily_ma=ma.masked_values(rawnc.variables["PRAVG"][int(dayb):int(daye),:,:],1.e+20)
