@@ -104,7 +104,7 @@ def ppdaily(rawnc,nstep,taskname,filenames,var_parameters ,
     wrfcfile_last=None
     for iday,filename in enumerate(filenames[beg_index:end_index]):
       wrfncfile_cur=openwrfdata(filename)
-      if iday+1<len(filenames):
+      if iday+1<len(filenames) and shiftday!=0:
         wrfncfile_next=openwrfdata(filenames[iday+1])
       else:
         wrfncfile_next=None
