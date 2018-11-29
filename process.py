@@ -467,8 +467,14 @@ def anal_sea_mon(periods,rawnc,monthList,fields,taskname,casename,shiftday,calen
       daye=date2num(ymd_datetime_e,units=time_units,calendar=calendar_cur)
       dayb=dayb-rawnc.variables["time"][0]#+shiftday
       daye=daye-rawnc.variables["time"][0]#+shiftday
-      if daye<0 or dayb<0 or daye>len(rawnc.variables["time"]):
+      if daye<0 or daye>len(rawnc.variables["time"]):
         continue
+      if dayb<=-20:
+        continue
+      elif dayb<0:
+        print("WRANING your first day is not the begining of the month!!!")
+        ymd_datetime_b=datetime(int(byear),int(bmonth),int(1-dayb),0,0,0) # reset the first day
+        dayb=0
       if taskname=="PR":
         data_daily_ma=ma.masked_values(rawnc.variables["PRAVG"][int(dayb):int(daye),:,:],1.e+20)
         R95T_HIST=None
