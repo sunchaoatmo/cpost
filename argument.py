@@ -9,6 +9,7 @@ def loadfile(filepath):
   if path.isfile(filepath):
     filenc=Dataset(filepath, 'r')
   else:
+    import sys
     print("Sorry can not open %s"% filepath)
     sys.exit("please provide correct the path to r95t_hist file in argument")
   return filenc
