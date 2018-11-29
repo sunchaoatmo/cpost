@@ -112,8 +112,8 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
       vr=outputdata["v_met"][:,:,:]
       ue = ur * cosalpha - vr * sinalpha
       ve = vr * cosalpha + ur * sinalpha
-      win= np.sqrt(ur*ur+vr*vr)
-      outputdata["WIN"][:,:,:]=win
+      #win= np.sqrt(ur*ur+vr*vr)
+      #outputdata["WIN"][:,:,:]=win
       outputdata["u_met"][:,:,:]=ue
       outputdata["v_met"][:,:,:]=ve
 
@@ -350,8 +350,8 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
         metfield=rh3d
       elif field in ["xsmtg","xsmlg","xsmig"]:
         metfield=xsmtg
-      elif field=="WIN_10":
-        continue 
+      #elif field=="WIN_10":
+      #  continue 
       else:
         metfield=wrf_o.variables[field]
       if outputdim==3:
@@ -389,8 +389,8 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
       vr=outputdata["v_10"][:,:]
       ue = ur * cosalpha - vr * sinalpha
       ve = vr * cosalpha + ur * sinalpha
-      win= np.sqrt(ur*ur+vr*vr)
-      outputdata["WIN_10"][:,:]=win
+      #win= np.sqrt(ur*ur+vr*vr)
+      #outputdata["WIN_10"][:,:]=win
       outputdata["u_10"][:,:]=ue
       outputdata["v_10"][:,:]=ve
   return 
@@ -433,7 +433,7 @@ def anal_sea_mon(periods,rawnc,monthList,fields,taskname,casename,shiftday,calen
     diagnc=Dataset(diagfname,'a')
     nctime_diag=diagnc.variables["time"]
     lastindex=len(nctime_diag)
-    assert  nctime_diag>0
+    assert  lastindex>0
     if nctime_diag[-1]<end_ymd.year:
       print("Following previous output")
       diag_startyear=nctime_diag[-1]+1
@@ -478,11 +478,11 @@ def anal_sea_mon(periods,rawnc,monthList,fields,taskname,casename,shiftday,calen
         dayb=0
       if taskname=="PR":
         data_daily_ma=ma.masked_values(rawnc.variables["PRAVG"][int(dayb):int(daye),:,:],1.e+20)
-        R95T_HIST=None
         if periods=="seasonal":
           R95T_HIST=r95t_hist.variables["R95T_hist"][j]
         else:
           R95T_HIST=None
+        R95T_HIST=None
         (diagnc.variables["RAINYDAYS"][i_cur,j,:,:],
          diagnc.variables["R10"][i_cur,j,:,:],
          diagnc.variables["R5D"][i_cur,j,:,:],
@@ -591,8 +591,8 @@ def anal_hourly(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,outputdim,
       vr=outputdata["v_met"][:]
       ue = ur * cosalpha - vr * sinalpha
       ve = vr * cosalpha + ur * sinalpha
-      win= np.sqrt(ur*ur+vr*vr)
-      outputdata["WIN"][:]=win
+      #win= np.sqrt(ur*ur+vr*vr)
+      #outputdata["WIN"][:]=win
       outputdata["u_met"][:]=ue
       outputdata["v_met"][:]=ve
   else:
@@ -633,8 +633,8 @@ def anal_hourly(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,outputdim,
         metfield=wrf_o.variables["AU10"][:,:,:]
       elif field=="v_10":
         metfield=wrf_o.variables["AV10"][:,:,:]
-      elif field=="WIN_10":
-        continue 
+      #elif field=="WIN_10":
+      #  continue 
       else:
         metfield=wrf_o.variables[field]
       if outputdim==3:
@@ -648,8 +648,8 @@ def anal_hourly(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,outputdim,
       vr=outputdata["v_10"][:,:,:]
       ue = ur * cosalpha - vr * sinalpha
       ve = vr * cosalpha + ur * sinalpha
-      win= np.sqrt(ur*ur+vr*vr)
-      outputdata["WIN_10"][:,:,:]=win
+      #win= np.sqrt(ur*ur+vr*vr)
+      #outputdata["WIN_10"][:,:,:]=win
       outputdata["u_10"][:,:,:]=ue
       outputdata["v_10"][:,:,:]=ve
 
