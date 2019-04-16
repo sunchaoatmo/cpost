@@ -13,8 +13,8 @@ def openwrfdata(filename):
   try:
     wrfncfile_cur=Dataset(filename,'r')
   except:
-    import sys
-    sys.exit("can not open:%s "%filename)
+    print("can not open:%s "%filename)
+    raise
   return wrfncfile_cur
 
 def getrawnc(rawfname,casename,taskname,periods,units_cur,calendar_cur,var_parameters,nx,ny,nlev,var_units,var_description ):
