@@ -47,8 +47,12 @@ def setmetadata(filename, rawdata):
       ny=ncfile_last.dimensions['lat'].size
       nx=ncfile_last.dimensions['lon'].size
     except:
-      ny=ncfile_last.dimensions['south_north'].size
-      nx=ncfile_last.dimensions['west_east'].size
+      try:
+        ny=ncfile_last.dimensions['south_north'].size
+        nx=ncfile_last.dimensions['west_east'].size
+      except:
+        ny=ncfile_last.dimensions['y'].size
+        nx=ncfile_last.dimensions['x'].size
 
     nlev =  number_of_zlevs if var_parameters[taskname]['vert_intp'] else nz 
   nlev = var_parameters[taskname].get("nlev",nlev)
@@ -144,10 +148,13 @@ else:
 
 ########################DIAG PART#################################
       if periods=="daily" and not args.inputfname:
+        units_cur=rawnc.variables["time"].units
+        calendar_cur=rawnc.variables["time"].calendar
         diag_s=anal_sea_mon("seasonal",rawnc,seasonList,var_parameters[taskname]["fields"].keys(),
                           taskname,casename,shiftday,calendar_cur,units_cur,var_units,var_description,ny,nx,nlev,r95tnc)
-        diag_m=anal_sea_mon("monthly",rawnc,monthlyList,var_parameters[taskname]["fields"].keys(),
-                          taskname,casename,shiftday,calendar_cur,units_cur,var_units,var_description,ny,nx,nlev,r95tnc)
+        diag_m=None
+        #diag_m=anal_sea_mon("monthly",rawnc,monthlyList,var_parameters[taskname]["fields"].keys(),
+        #                  taskname,casename,shiftday,calendar_cur,units_cur,var_units,var_description,ny,nx,nlev,r95tnc)
 
       import getpass
       import socket
@@ -164,12 +171,12 @@ else:
           setattr(diag_s,name, getattr(ncfile_last,name))
         diag_s.variables["lat"][:]=wrfinputnc.variables["CLAT"][0,:,:]
         diag_s.variables["lon"][:]=wrfinputnc.variables["CLONG"][0,:,:]
-        diag_s.history = diag_s.history+history
+        diag_s.history = history
         diag_s.close() #flush out rawnc
       if diag_m is not None:
         for name in ncfile_last.__dict__: 
             setattr(diag_m,name, getattr(ncfile_last,name))
         diag_m.variables["lat"][:]=wrfinputnc.variables["CLAT"][0,:,:]
         diag_m.variables["lon"][:]=wrfinputnc.variables["CLONG"][0,:,:]
-        diag_m.history = diag_m.history+history
+        diag_m.history = history
         diag_m.close() #flush out rawnc
