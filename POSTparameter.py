@@ -39,8 +39,14 @@ var_parameters = {
                            "fields":{"AT2M":{"units":"K","description":"temperatrue at 2 meter "},
                                    #"T2M975":{"units":"K","description":"temperatrue at 2 meter 975 percentile "}
                              }},
+"Q2M"             : { "compute_mode" : 1  , "shiftday" : -1  , "vert_intp" : None ,"dim":3,
+                           "fields":{"Q2M":{"units":"kg kg-1","description":"specific humidity at 2 meter "},
+                             }},
+"RAINC"            : { "compute_mode" : 6  , "shiftday" : 0   , "vert_intp" : None ,"dim":3,
+                           "fields":{"RAINC":{"units":"mm/day","description":"Average convective daily Precip"} }} , 
 "PR"            : { "compute_mode" : 1  , "shiftday" : -1  , "vert_intp" : None ,"dim":3,
                            "fields":{"PRAVG":{"units":"mm/day","description":"Average daily Precip"},
+                                      "PMAX":{"units":"mm/day","description":"Maximum"},
                                        "PCT":{"units":"mm/day","description":"Precip 95 percentile"},
                                  "RAINYDAYS":{"units":"day","description":"No. of days with PR larger than 1mm/day"},
                                        "R10":{"units":"mm/day","description":"No. of days with precipitation >10 mm d-1"},
@@ -101,7 +107,7 @@ var_parameters = {
                        "fields":{"xsmig":{"units":"g","description":" ice grouped SM"},
                                 }
                      },
-"RAINC"            : { "compute_mode" : 6  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"RAINC":None}} , 
+#"RAINC"            : { "compute_mode" : 6  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"RAINC":None}} , 
 "RAINNC"           : { "compute_mode" : 6  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"RAINNC":None}} , 
 "CDD"              : { "compute_mode" : 12 , "shiftday" : 0  , "vert_intp" : None ,"fields":{"CDD":None}} , 
 "RAINYDAYS"        : { "compute_mode" : 13 , "shiftday" : 0  , "vert_intp" : None ,"fields":{"RAINYDAYS":None}} , 
@@ -171,7 +177,6 @@ var_parameters = {
 "QICE"             : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"QICE":None}} , 
 "QSNOW"            : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"QSNOW":None}} , 
 "QGRAUP"           : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None ,"fields":{"QGRAUP":None}} , 
-"Q"                : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : "p"  ,"fields":{"Q":None}} , 
 "T"                : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : "p"  ,"fields":{"T":None}} , 
 "U"                : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : "p"  ,"fields":{"U":None}} , 
 "V"                : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : "p"  ,"fields":{"V":None}} , 
@@ -202,6 +207,10 @@ var_parameters = {
 "RH"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None  ,"dim":3,
                        "fields":{
                                 "RH":{"units":"%","description":"Relative Humidity at 2m"} 
+                              }} , 
+"Q"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : 'p'  ,"dim":4,
+                       "fields":{
+                                "Q":{"units":"Kg/Kg","description":"Specific Humidity"} 
                               }} , 
 "rh3d"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" :None  ,"dim":4,
                        "fields":{
@@ -236,6 +245,12 @@ var_parameters = {
                                  ,"TPW_m":{"units":"cm","description":"totol precipitable water 680 to 440 mb"} 
                                  ,"TPW_h":{"units":"cm","description":"totol precipitable water 440 to model top"} 
                          }} , 
+"TPWmax"   : { "compute_mode" : 8  , "shiftday" : 0  , "vert_intp" : None  ,"dim":3,
+                       "fields":{ "TPW_l":{"units":"cm","description":"totol precipitable water Surface to 680mb"} 
+                                 ,"TPW_m":{"units":"cm","description":"totol precipitable water 680 to 440 mb"} 
+                                 ,"TPW_h":{"units":"cm","description":"totol precipitable water 440 to model top"} 
+                         }} , 
+
 #for cloud related
 "TCL"      : { "compute_mode" : 1  , "shiftday" : 0  , "vert_intp" : None  ,"dim":3,
                        "fields":{ "TCL_l":{"units":"cm","description":"totol cloud liquid water Surface to 680mb"} 
@@ -329,7 +344,6 @@ daily_allvars_2d =[ 'slp', 'PR',     'RAINC',   'RAINNC',
                     'AT2M',   'T2MAX',   'T2MIN',
                   'ASWUPT',   'ASWUPTC', 'ASWDNT', 'ASWDNS',  'ASWDNSC',  'ASWUPS',  'ASWUPSC',
                   'ALWUPT',   'ALWUPTC', 'ALWDNS', 'ALWDNSC', 'ALWUPS',   'ALWUPSC',
-                  'TCWPC'   , 'TCWPI'     , 'TCWPR'   , 
                     'EMISS',   'QFX',    'LH',
                   'XSWI'    , 'PBLH'      , 'TKES'    , 'UST'      , 'WCSTAR'  , 
                   'AHFX'    , 'ALFX'      , 
@@ -337,14 +351,12 @@ daily_allvars_2d =[ 'slp', 'PR',     'RAINC',   'RAINNC',
                   'XQRCHRG' , 
                   'PSFC'    , 'PMSL'      , 'cldfrag'    ,
                       'SNOW',   'SNOWH', 'uv_10', 'RH',
-                   'XZWT',    'XRBAS',   'XRDRN',  'XRSAT', ]
+                   'XZWT',    'XRBAS',   'XRDRN',  'XRSAT', 'TPWmax','lwp','iwp',"TPW","cto"]
 
-"""
-daily_allvars_3d =[ 'temp'     ,  'omega' ,'PSFC'] 
-"""
-daily_allvars_3d =[ 'CLDFRA',
-                    'uv_met',  'height',
-                   'XTSS'   , 'XWLIQ',   'XWICE',
+#daily_allvars_2d =[ 'RH', 'cldfrag','TPWmax','PBLH','AHFX']
+
+daily_allvars_3d =[ 'uv_met',  'height',"xsmtg",
+                   'temp'   , 'XWLIQ',   'XWICE',
                    'QVAPOR',  'QCLOUD'  , 'QRAIN'     , 'QICE'     ]
 
 # diurnal cycle vars:
