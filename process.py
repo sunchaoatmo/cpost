@@ -140,7 +140,8 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
       rh=np.zeros((ntime,south_north,west_east)) #,order='F',dtype=np.float32)
       for itime in range(ntime):
         q2m   =wrf_o.variables['Q2M'][itime,:,:]
-        t2m   =wrf_o.variables['T2M'][itime,:,:]
+        t2m   =wrf_o.variables['AT2M'][itime,:,:]
+        #t2m   =wrf_o.variables['T2M'][itime,:,:]
         psfc  =wrf_o.variables['PSFC'][itime,:,:]
         rh[itime,:,:]    =arwpost.calc_rh( q2m=q2m,t2m=t2m,psfc=psfc)
     elif taskname=="cldfrag":
@@ -175,7 +176,7 @@ def anal_daily(iday,outputdata,wrf_o,wrf_i,taskname,fields,vert_intp,
                          south_north_dim=south_north,
                          west_east_dim=west_east,ntime=ntime)
     #cloud ralated
-    elif taskname in ["TCL","TCR","TCI","TCS","TCG","TPW"]:
+    elif taskname in ["TCL","TCR","TCI","TCS","TCG","TPW","TPWmax"]:
       tc_l=np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
       tc_m=np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
       tc_h=np.zeros((ntime,south_north,west_east),order='F',dtype=np.float32)
@@ -445,6 +446,9 @@ def anal_sea_mon(periods,rawnc,monthList,fields,taskname,casename,shiftday,calen
       diagnc.variables[field].units=units[field]
       diagnc.variables[field].description=description[field]
 
+  #diag_startyear=1989
+  #diag_endyear=2009
+
   Years=range(diag_startyear,diag_endyear+1)
   diagnc.variables['time'][lastindex:]=Years
   for i,year in  enumerate(Years):
@@ -455,34 +459,43 @@ def anal_sea_mon(periods,rawnc,monthList,fields,taskname,casename,shiftday,calen
         byear=year-1
       eyear=year
       bmonth=month[0]
-      emonth=month[1]
-      bday=1
-      if calendar_cur=="noleap":
-        eday=calendar.monthrange(1999, emonth)[1]
-      else:
-        eday=calendar.monthrange(eyear, emonth)[1]
       ymd_datetime_b=datetime(int(byear),int(bmonth),1,0,0,0)
-      dayb=date2num(ymd_datetime_b,units=time_units,calendar=calendar_cur)
+
+      emonth=month[1]
+      eday=calendar.monthrange(eyear, emonth)[1]
+      if emonth==2:
+        if calendar_cur in ["365_day","noleap"]:
+           eday=28
+        elif calendar_cur in ['all_leap', '366_day']:
+           eday=29
       ymd_datetime_e=datetime(int(eyear),int(emonth),int(eday),0,0,0)
-      daye=date2num(ymd_datetime_e,units=time_units,calendar=calendar_cur)
-      dayb=dayb-rawnc.variables["time"][0]#+shiftday
-      daye=daye-rawnc.variables["time"][0]#+shiftday
-      if daye<0 or daye>len(rawnc.variables["time"]):
+
+      index_b =date2num( ymd_datetime_b,units=time_units,calendar=calendar_cur)
+      index_e =date2num( ymd_datetime_e,units=time_units,calendar=calendar_cur)
+      index_b = index_b- nctime[0]
+      index_e = index_e- nctime[0]
+      if "hours" in time_units:
+        index_b = index_b/24
+        index_e = index_e/24
+
+
+      if index_e<0 or index_e>len(rawnc.variables["time"]):
         continue
-      if dayb<=-20:
+      if index_b<=-35:
         continue
-      elif dayb<0:
+      elif index_b<0:
         print("WRANING your first day is not the begining of the month!!!")
-        ymd_datetime_b=datetime(int(byear),int(bmonth),int(1-dayb),0,0,0) # reset the first day
-        diagnc.history = "Warning the first day is not the begining of the month but %s"%ymd_datetime_b
-        dayb=0
+        #ymd_datetime_b=datetime(int(byear),int(bmonth),int(1-dayb),0,0,0) # reset the first day
+        diagnc.history = "WARNING the first day is not the begining of the month but "
+        index_b=0
       if taskname=="PR":
-        data_daily_ma=ma.masked_values(rawnc.variables["PRAVG"][int(dayb):int(daye),:,:],1.e+20)
+        data_daily_ma=ma.masked_values(rawnc.variables["PRAVG"][int(index_b):int(index_e),:,:],1.e+20)
+        data_daily_ma[data_daily_ma>10000]=0.0
+        R95T_HIST=None
         if periods=="seasonal":
           R95T_HIST=r95t_hist.variables["R95T_hist"][j]
         else:
           R95T_HIST=None
-        R95T_HIST=None
         (diagnc.variables["RAINYDAYS"][i_cur,j,:,:],
          diagnc.variables["R10"][i_cur,j,:,:],
          diagnc.variables["R5D"][i_cur,j,:,:],
@@ -491,9 +504,10 @@ def anal_sea_mon(periods,rawnc,monthList,fields,taskname,casename,shiftday,calen
         diagnc.variables["PCT"][i_cur,j,:,:]=cs_stat.quantile_cal(pre_quantile=data_daily_ma,dry_lim=dry_lim,qvalue=qvalue)
         diagnc.variables["CDD"][i_cur,j,:,:]=cs_stat.consective_dry(fields=data_daily_ma,dry_lim=dry_lim)
         diagnc.variables["PRAVG"][i_cur,j,:,:]=np.mean(data_daily_ma,axis=0)
+        diagnc.variables["PMAX"][i_cur,j,:,:]=np.max(data_daily_ma,axis=0)
       else:
         for field in fields:
-          temp=np.asarray(rawnc.variables[field][int(dayb):int(daye)+1,:,:])
+          temp=np.asarray(rawnc.variables[field][int(index_b):int(index_e),:,:])
           data_daily_ma=ma.masked_values(temp,1.e+20)
           diagnc.variables[field][i_cur,j,:,:]=np.mean(data_daily_ma,axis=0)
       if periods=="monthly":
