@@ -20,7 +20,8 @@ CPMD = 0.887
 RCP = Rd/Cp
 p0 = 100000.
 EPS = 0.622
-cwrfnames={"TPW":"QVAPOR",
+cwrfnames={ "TPW":"QVAPOR",
+            "TPWmax":"QVAPOR",
            "TCL":"QCLOUD", 
            "TCR":"QRAIN", 
            "TCI":"QICE", 
