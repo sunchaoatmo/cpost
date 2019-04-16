@@ -1042,17 +1042,19 @@ CONTAINS
 
 
      DO k = bottom_top_dim,1,-1
-       prs(k,:,:)=PRES_in(rev,:,:)*0.01
        rev=bottom_top_dim-k+1
+       prs(k,:,:)=PRES_in(rev,:,:)*0.01
        ght (k,:,:)=GEOPT_in(rev,:,:)/G
        tk (k,:,:)=TK_in(rev,:,:)
        qv (k,:,:)=QV_in(rev,:,:)
      END DO
 
+     !prsf(bottom_top_dim,:,:) = 0.01*PSFC(:,:)             !! Lowest full sigma set to surface pressure
      prsf(1,:,:) = 0.01*PSFC(:,:)             !! Lowest full sigma set to surface pressure
 
      DO k = 2, bottom_top_dim
        prsf(k,:,:)=.5*(prs(k-1,:,:)+prs(k,:,:))
+       !prsf(k,:,:)=.5*(prs(k-1,:,:)+prs(k,:,:))
      END DO
 
      
@@ -1096,13 +1098,13 @@ CONTAINS
          davg = 500.
          pavg = davg*prs(kpar1,j,i)*G /                        &
                 ( Rd*virtual(TK(kpar1,j,i),QV(kpar1,j,i)) )
-         p2 = min(prs(kpar1,j,i)+.5*pavg,prsf(i,j,1))
+         p2 = min(prs(kpar1,j,i)+.5*pavg,prsf(1,i,j))
          p1 = p2-pavg
          totthe = 0.
          totqvp = 0.
          totprs = 0.
          DO k = 1,bottom_top_dim-1
-           print*,k,j,i,"prsf=",prsf(k,j,i),"p1=",p1,"p2=",p2
+           !print*,prsf(k,j,i),prsf(k+1,j,i),p1,p2
            IF ( prsf(k,j,i)   .le. p1 ) GOTO 35
            IF ( prsf(k+1,j,i) .ge. p2 ) GOTO 34
            pressure = prs(k,j,i)
@@ -1118,6 +1120,7 @@ CONTAINS
              totthe = totthe+th*deltap
              totprs = totprs+deltap
            END IF
+           !print*,k,j,i,"prsf=",prsf(k,j,i),"p1=",p1,"p2=",p2,"totpres", totprs 
  34        CONTINUE
          END DO
  35      CONTINUE
@@ -1146,6 +1149,12 @@ CONTAINS
          ethpari = tmkpari*(1000./prspari)**(GAMMA_RIP*(1.+GAMMAMD*qvppari))*   &
                    exp((THTECON1/tlcl-THTECON2)*qvppari*                    &
                    (1.+THTECON3*qvppari))
+
+         !print*, "term tmkpari=",tmkpari
+         !print*, "term prspari=",prspari
+         !print*, "term qvppari=",qvppari
+         !print*, "term tmkpari=",tmkpari*(1000./prspari)**(GAMMA_RIP*(1.+GAMMAMD*qvppari))
+         !print*, "term tlcl=",tlcl
          zlcl    = ghtpari+(tmkpari-tlcl)/(G/cpm)
 
 !   Calculate buoyancy and relative height of lifted parcel at
@@ -1380,7 +1389,7 @@ CONTAINS
 
       IF ( jt.eq.-1 .OR. ip.eq.-1 ) THEN
         PRINT*, 'Outside of lookup table bounds. prs,thte=',prs,thte
-        STOP 
+        !STOP 
       ENDIF
 
 
@@ -1393,7 +1402,7 @@ CONTAINS
            psaditmk(ip,jt+1).gt.1e9 .OR. psaditmk(ip+1,jt+1).gt.1e9 ) THEN
         PRINT*, 'Tried to access missing tmperature in lookup table.'
         PRINT*, 'Prs and Thte probably unreasonable. prs,thte=',prs,thte
-        STOP
+        !STOP
       ENDIF
 
       tonpsadiabat = fracip2*fracjt2*psaditmk(ip  ,jt  )+   &
